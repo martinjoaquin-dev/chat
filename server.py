@@ -6,6 +6,7 @@ import socket
 import struct
 import threading
 import argparse
+from crypto_utils import SymmetricCrypto
 
 HOST, PORT = '0.0.0.0', 9000
 msg_queue = queue.Queue()
@@ -15,12 +16,10 @@ def logger():
     log = logging.getLogger('chat')
     log.setLevel(logging.INFO)
     
-    # Handler para archivo rotativo
     file_handler = RotatingFileHandler('chat.log', maxBytes=5_000_000, backupCount=3)
     file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
     log.addHandler(file_handler)
     
-    # Handler para consola
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
     log.addHandler(console_handler)
@@ -33,9 +32,10 @@ def logger():
             pass
 
 class ClientHandler(threading.Thread):
-    def __init__(self, conn, addr):
+    def __init__(self, conn, addr, crypto):
         super().__init__(daemon=True)
         self.conn, self.addr = conn, addr
+        self.crypto = crypto
 
     def run(self):
         with self.conn:
@@ -48,7 +48,6 @@ class ClientHandler(threading.Thread):
                         break
                     (length,) = struct.unpack('!I', raw_len)
                     
-                    # Leer el mensaje completo
                     buf = bytearray()
                     while len(buf) < length:
                         chunk = self.conn.recv(length - len(buf))
@@ -57,36 +56,46 @@ class ClientHandler(threading.Thread):
                         buf.extend(chunk)
                     
                     if len(buf) == length:
-                        data = buf.decode()
-                        msg_queue.put((client_id, data))
+                        try:
+                            import binascii
+                            print(f'📡 Datos cifrados recibidos: {binascii.hexlify(buf[:50]).decode()}...')
+                            print(f'📏 Tamaño recibido: {len(buf)} bytes')
+                            
+                            plaintext = self.crypto.decrypt_message(buf)
+                            msg_queue.put((client_id, plaintext))
+                            print(f'🔓 Mensaje descifrado: "{plaintext}"')
+                        except ValueError as e:
+                            print(f'❌ Error de descifrado de {client_id}: {e}')
+                        except Exception as e:
+                            print(f'❌ Error inesperado de {client_id}: {e}')
                 except (ConnectionError, struct.error, OSError):
                     break
             print(f'Cliente desconectado: {client_id}')
 
 def main():
-    parser = argparse.ArgumentParser(description='Servidor de chat TCP')
+    parser = argparse.ArgumentParser(description='Servidor de chat TCP con cifrado simétrico')
     parser.add_argument('--host', default='0.0.0.0', help='IP de escucha (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=9000, help='Puerto de escucha (default: 9000)')
     parser.add_argument('--log-file', default='chat.log', help='Archivo de log (default: chat.log)')
     parser.add_argument('--max-bytes', type=int, default=5_000_000, help='Tamaño máximo del archivo de log (default: 5MB)')
     parser.add_argument('--backups', type=int, default=3, help='Número de archivos de respaldo (default: 3)')
+    parser.add_argument('--password', default='chat_secret_key_2024', help='Contraseña para cifrado (default: chat_secret_key_2024)')
     
     args = parser.parse_args()
     
     global HOST, PORT
     HOST, PORT = args.host, args.port
     
-    # Actualizar el handler de archivo con los argumentos
+    crypto = SymmetricCrypto(args.password)
+    
     def logger():
         log = logging.getLogger('chat')
         log.setLevel(logging.INFO)
         
-        # Handler para archivo rotativo
         file_handler = RotatingFileHandler(args.log_file, maxBytes=args.max_bytes, backupCount=args.backups)
         file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
         log.addHandler(file_handler)
         
-        # Handler para consola
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
         log.addHandler(console_handler)
@@ -105,12 +114,13 @@ def main():
         s.bind((HOST, PORT))
         s.listen()
         print(f'🚀 Servidor escuchando en {HOST}:{PORT}')
+        print(f'🔐 Cifrado simétrico AES-256-GCM + HMAC activado')
         print(f'📝 Logs guardándose en: {args.log_file}')
         print('💡 Presiona Ctrl+C para detener el servidor')
         try:
             while True:
                 conn, addr = s.accept()
-                ClientHandler(conn, addr).start()
+                ClientHandler(conn, addr, crypto).start()
         except KeyboardInterrupt:
             print('\n🛑 Deteniendo servidor...')
             stop_event.set()
