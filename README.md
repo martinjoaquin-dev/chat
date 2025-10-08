@@ -1,18 +1,23 @@
-# 🔐 Chat TCP con Cifrado Simétrico
+# 🔐 Chat TCP con Cifrado Asimétrico
 
-Un sistema de chat cliente-servidor TCP con cifrado simétrico robusto implementado en Python.
+Un sistema de chat cliente-servidor TCP con cifrado asimétrico robusto implementado en Python.
 
 ## 🚀 Características
 
 ### Seguridad
-- **Cifrado AES-256-GCM**: Cifrado autenticado de grado militar
+- **RSA-4096**: Para firmas digitales y autenticación
+- **ECDH P-384**: Para intercambio seguro de claves
+- **AES-256-GCM**: Cifrado simétrico de grado militar
 - **HMAC-SHA256**: Verificación adicional de integridad
-- **PBKDF2**: Derivación segura de claves desde contraseñas
-- **Protección contra tampering**: Detección automática de mensajes alterados
+- **No-repudio**: Firma digital de cada mensaje
+- **Autenticación**: Verificación de identidad del remitente
 - **IV aleatorio**: Cada mensaje usa un vector de inicialización único
 
 ### Funcionalidades
 - ✅ Comunicación TCP en tiempo real
+- ✅ **Intercambio automático de claves públicas**
+- ✅ **Firma digital de mensajes**
+- ✅ **Verificación de identidad**
 - ✅ Cifrado/descifrado transparente
 - ✅ **Visualización de datos cifrados** en tiempo real
 - ✅ Logging rotativo con archivos de respaldo
@@ -23,21 +28,34 @@ Un sistema de chat cliente-servidor TCP con cifrado simétrico robusto implement
 
 ## 🏗️ Arquitectura
 
-### Protocolo de Cifrado
+### Protocolo de Cifrado Asimétrico
 ```
-Mensaje cifrado:
-[4 bytes: longitud total]
-[12 bytes: IV (nonce)]
-[16 bytes: tag de autenticación GCM]
-[32 bytes: HMAC-SHA256]
-[resto: ciphertext AES-256-GCM]
+1. Intercambio de claves públicas:
+   Cliente → Servidor: Clave pública RSA + ECDH
+   Servidor → Cliente: Clave pública RSA + ECDH
+
+2. Cálculo de secreto compartido:
+   Ambos calculan: ECDH(privada_local, pública_peer)
+
+3. Mensaje cifrado:
+   [4 bytes: longitud total]
+   [12 bytes: IV (nonce)]
+   [16 bytes: tag de autenticación GCM]
+   [32 bytes: HMAC-SHA256]
+   [resto: ciphertext AES-256-GCM]
+
+4. Firma digital:
+   [4 bytes: longitud firma]
+   [resto: firma RSA-4096]
 ```
 
 ### Flujo de Comunicación
-1. **Cliente** → Cifra mensaje con AES-256-GCM + HMAC
-2. **Red** → Transmisión segura de datos cifrados
-3. **Servidor** → Verifica HMAC y descifra con AES-256-GCM
-4. **Log** → Almacena mensaje descifrado en archivo
+1. **Intercambio de claves** → Claves públicas RSA + ECDH
+2. **Cálculo ECDH** → Secreto compartido para AES
+3. **Cliente** → Cifra mensaje con AES-256-GCM + Firma con RSA-4096
+4. **Red** → Transmisión segura de datos cifrados + firma
+5. **Servidor** → Verifica firma RSA + Descifra con AES-256-GCM
+6. **Log** → Almacena mensaje con identidad verificada
 
 ## 📦 Instalación
 
@@ -62,13 +80,13 @@ python server.py
 
 **Opciones del servidor:**
 ```bash
-python server.py --host 0.0.0.0 --port 9000 --password mi_clave_secreta
+python server.py --host 0.0.0.0 --port 9000 --key-size 4096
 ```
 
 **Parámetros:**
 - `--host`: IP de escucha (default: 0.0.0.0)
 - `--port`: Puerto de escucha (default: 9000)
-- `--password`: Contraseña para cifrado (default: chat_secret_key_2024)
+- `--key-size`: Tamaño de clave RSA (default: 4096)
 - `--log-file`: Archivo de log (default: chat.log)
 - `--max-bytes`: Tamaño máximo del log (default: 5MB)
 - `--backups`: Número de archivos de respaldo (default: 3)
@@ -80,35 +98,35 @@ python client.py
 
 **Opciones del cliente:**
 ```bash
-python client.py --host 127.0.0.1 --port 9000 --password mi_clave_secreta
+python client.py --host 127.0.0.1 --port 9000 --key-size 4096
 ```
 
 **Parámetros:**
 - `--host`: IP del servidor (default: 127.0.0.1)
 - `--port`: Puerto del servidor (default: 9000)
-- `--password`: Contraseña para cifrado (default: chat_secret_key_2024)
+- `--key-size`: Tamaño de clave RSA (default: 4096)
 
 ### 3. Ejemplo de Uso
 ```bash
 # Terminal 1: Servidor
-python server.py --password mi_super_clave_2024
+python server.py --key-size 4096
 
 # Terminal 2: Cliente 1
-python client.py --password mi_super_clave_2024
+python client.py --key-size 4096
 
 # Terminal 3: Cliente 2
-python client.py --password mi_super_clave_2024
+python client.py --key-size 4096
 ```
 
 ## 🔧 Configuración Avanzada
 
-### Cambiar Contraseña
+### Cambiar Tamaño de Clave RSA
 ```bash
-# Servidor con contraseña personalizada
-python server.py --password "MiClaveSuperSecreta123!"
+# Servidor con clave RSA-2048 (más rápido)
+python server.py --key-size 2048
 
-# Cliente con la misma contraseña
-python client.py --password "MiClaveSuperSecreta123!"
+# Cliente con la misma configuración
+python client.py --key-size 2048
 ```
 
 ### Configurar Logging
@@ -119,61 +137,72 @@ python server.py --log-file mi_chat.log --max-bytes 10000000 --backups 5
 
 ## 🧪 Pruebas
 
-### Probar Cifrado
-   ```bash
-python crypto_utils.py
-   ```
+### Probar Cifrado Asimétrico
+```bash
+python crypto_utils_asymmetric.py
+```
 
 ### Ver Estructura del Cifrado
-   ```bash
-python mostrar_cifrado.py
+```bash
+python mostrar_cifrado_asimetrico.py
 ```
 
 ### Probar Comunicación
 1. Inicia el servidor
 2. Conecta múltiples clientes
 3. Envía mensajes desde diferentes clientes
-4. **Observa los datos cifrados** en tiempo real
-5. Verifica que aparezcan en el log del servidor
+4. **Observa el intercambio de claves** en tiempo real
+5. **Verifica las firmas digitales** automáticamente
+6. Verifica que aparezcan en el log del servidor
 
 ### Visualización en Tiempo Real
-- **Cliente**: Muestra datos cifrados en hexadecimal
-- **Servidor**: Muestra datos recibidos y descifrados
-- **Estructura**: IV, Tag, HMAC, Ciphertext
+- **Cliente**: Muestra datos cifrados y firma digital
+- **Servidor**: Muestra datos recibidos, descifrados y verificación de firma
+- **Estructura**: IV, Tag, HMAC, Ciphertext + Firma RSA
+- **Identidad**: Hash de clave pública para identificación
 
 ## 🔒 Seguridad
 
 ### Algoritmos Utilizados
+- **RSA-4096**: Cifrado asimétrico de 4096 bits con autenticación
+- **ECDH P-384**: Intercambio de claves con curva elíptica de 384 bits
 - **AES-256-GCM**: Cifrado simétrico de 256 bits con autenticación
 - **HMAC-SHA256**: Verificación de integridad con clave secreta
-- **PBKDF2**: Derivación de claves con 100,000 iteraciones
-- **Salt fijo**: Para desarrollo (cambiar en producción)
+- **PSS Padding**: Relleno probabilístico para firmas RSA
+
+### Características de Seguridad
+- ✅ **Confidencialidad**: AES-256-GCM
+- ✅ **Integridad**: HMAC-SHA256
+- ✅ **Autenticación**: RSA-4096
+- ✅ **No-repudio**: Firma digital
+- ✅ **Distribución de claves**: ECDH P-384
+- ✅ **Detección de tampering**: Falla si el mensaje fue alterado
+- ✅ **Verificación de identidad**: Cada mensaje está firmado
 
 ### Buenas Prácticas
-- ✅ Usa contraseñas fuertes y únicas
-- ✅ Cambia la contraseña regularmente
-- ✅ No compartas la contraseña por canales inseguros
-- ✅ Considera usar variables de entorno para contraseñas
+- ✅ Usa claves RSA de al menos 2048 bits (recomendado 4096)
+- ✅ Verifica la identidad de los participantes
 - ✅ Monitorea los logs para actividad sospechosa
+- ✅ Considera rotación periódica de claves
+- ✅ Almacena claves privadas de forma segura
 
 ### Limitaciones Actuales
-- ⚠️ Contraseña compartida predefinida (cambiar en producción)
-- ⚠️ Salt fijo (implementar salt aleatorio en producción)
-- ⚠️ No hay rotación automática de claves
+- ⚠️ Claves generadas en memoria (no persistentes)
+- ⚠️ No hay revocación de claves
+- ⚠️ No hay certificados digitales
 - ⚠️ No hay autenticación de usuarios
 
-## 📁 Estructura del Proyecto
+## 📊 Comparación: Simétrico vs Asimétrico
 
-```
-chat/
-├── client.py              # Cliente TCP con cifrado
-├── server.py              # Servidor TCP con descifrado
-├── crypto_utils.py        # Utilidades criptográficas
-├── mostrar_cifrado.py     # Script de demostración del cifrado
-├── requirements.txt       # Dependencias Python
-├── README.md             # Este archivo
-└── chat.log              # Logs del servidor (generado automáticamente)
-```
+| Característica | Simétrico | Asimétrico |
+|---------------|-----------|------------|
+| **Velocidad** | ⚡ Muy rápido | 🐌 Más lento |
+| **Complejidad** | 🟢 Simple | 🔴 Complejo |
+| **Distribución de claves** | ❌ Problemática | ✅ Segura |
+| **No-repudio** | ❌ No | ✅ Sí |
+| **Autenticación** | ❌ Limitada | ✅ Completa |
+| **Escalabilidad** | 🟡 Limitada | 🟢 Excelente |
+| **Uso recomendado** | Chat grupal | Transacciones críticas |
 
 ## 🐛 Solución de Problemas
 
@@ -182,32 +211,54 @@ chat/
 - Comprueba la IP y puerto
 - Revisa el firewall
 
-### Error: "Verificación HMAC falló"
-- Asegúrate de usar la misma contraseña en cliente y servidor
-- Verifica que no haya corrupción de datos en la red
+### Error: "Intercambio de claves falló"
+- Verifica que las claves RSA sean compatibles
+- Comprueba la conectividad de red
+- Revisa los logs del servidor
+
+### Error: "Firma digital inválida"
+- Verifica que las claves públicas coincidan
+- Comprueba que no haya corrupción de datos
+- Revisa la integridad de la conexión
 
 ### Error: "Datos cifrados demasiado cortos"
 - El mensaje puede estar corrupto
 - Verifica la integridad de la conexión
+- Comprueba el intercambio de claves
+
+## 📁 Estructura del Proyecto
+
+```
+chat/
+├── client.py                      # Cliente TCP con cifrado asimétrico
+├── server.py                      # Servidor TCP con descifrado asimétrico
+├── crypto_utils_asymmetric.py     # Utilidades criptográficas asimétricas
+├── mostrar_cifrado_asimetrico.py  # Script de demostración del cifrado asimétrico
+├── requirements.txt               # Dependencias Python
+├── README.md                      # Este archivo
+└── chat.log                       # Logs del servidor (generado automáticamente)
+```
 
 ## 🔄 Versiones
 
-### Rama Actual: `feature/symmetric-crypto`
-- ✅ Cifrado simétrico AES-256-GCM + HMAC
+### Rama Actual: `feature/asymmetric-encryption`
+- ✅ Cifrado asimétrico RSA-4096 + ECDH P-384 + AES-256-GCM
+- ✅ Intercambio automático de claves públicas
+- ✅ Firma digital y verificación
 - ✅ Cliente y servidor modificados
 - ✅ Utilidades criptográficas completas
 
-### Próximas Versiones
-- 🔄 Rama `feature/asymmetric-crypto`: Cifrado asimétrico con RSA/ECDSA
-- 🔄 Autenticación de usuarios
-- 🔄 Rotación automática de claves
-- 🔄 Interfaz gráfica
+### Rama Anterior: `feature/symmetric-encryption`
+- ✅ Cifrado simétrico AES-256-GCM + HMAC
+- ✅ Clave compartida predefinida
+- ✅ Implementación más simple
 
 ## 📚 Referencias Técnicas
 
+- [RSA Specification](https://tools.ietf.org/html/rfc3447)
+- [ECDH Specification](https://tools.ietf.org/html/rfc7748)
 - [AES-GCM Specification](https://tools.ietf.org/html/rfc5288)
 - [HMAC Specification](https://tools.ietf.org/html/rfc2104)
-- [PBKDF2 Specification](https://tools.ietf.org/html/rfc2898)
 - [Cryptography Library](https://cryptography.io/)
 
 ## 👥 Contribuciones
@@ -224,4 +275,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ---
 
-**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como autenticación de usuarios, rotación de claves, y auditoría de seguridad.
+**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como certificados digitales, revocación de claves, y auditoría de seguridad.
