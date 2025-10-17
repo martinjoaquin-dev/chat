@@ -224,4 +224,17 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ---
 
-**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como autenticación de usuarios, rotación de claves, y auditoría de seguridad.
+**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como autenticación de usuarios, rotación de claves, y auditoría de seguridad.| README.md | b806bda43062bbc38718dd589be6e60b | 2025-10-07 | NombreTeam |
+
+## 📝 Control de Versiones
+
+| Archivo              | MD5                              | Fecha de cambio|
+|----------------------|----------------------------------|----------------|
+| __pycache__          |                                  | 2025-10-07     |
+| chat                 |                                  |                |
+| chat.log             | c03be281e3414f4d55ea1b2ec55ce865 | 2025-10-07     |
+| client.py            | 0c8507d02140938d448331265ccd035c | 2025-10-07     |
+| crypto_utils.py      | f428f8822f48358e47737aef44552544 | 2025-10-07     |
+| mostrar_cifrado.py   | c6ea27b39da48f363cfb2102994f33fd | 2025-10-07     |
+| requirements.txt     | f075620e4fc1dfbcfd4e88038cd67c7e | 2025-10-07     |
+| server.py            | fc1601fd37f49eaf827a80f749afdfd9 | 2025-10-07     |
