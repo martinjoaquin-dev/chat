@@ -275,4 +275,19 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 
 ---
 
-**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como certificados digitales, revocación de claves, y auditoría de seguridad.
+**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como certificados digitales, revocación de claves, y auditoría de seguridad.| README.md | 01efe997695b7ca6ff2f7c0f51ed0a66 | 2025-10-08 | NombreTeam |
+
+
+## 📝 Control de Versiones
+
+| Archivo                         | MD5                              | Fecha de cambio|
+|---------------------------------|----------------------------------|----------------|
+| README.md                       | 8f02923001cc1e7e42324ed253cd0fec | 2025-10-08     |
+| __pycache__                     |                                  | 2025-10-08     |
+| chat                            |                                  |                |
+| chat.log                        | d7e83eb0c924c48db2d539af3d0b9bc4 | 2025-10-08     |
+| client.py                       | 62ddf99888a2f0d20641ee4e4344f133 | 2025-10-08     |
+| crypto_utils_asymmetric.py      | de411e77dfe63776add713e50189ef01 | 2025-10-08     |
+| mostrar_cifrado_asimetrico.py   | 031c161ab7da05cf34d08483d75b9ec6 | 2025-10-08     |
+| requirements.txt                | f075620e4fc1dfbcfd4e88038cd67c7e | 2025-10-07     |
+| server.py                       | e9c0bb12f6b22477bc02270165efec1b | 2025-10-08     |
