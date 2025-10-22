@@ -1,119 +1,85 @@
-# server.py
-import logging
-from logging.handlers import RotatingFileHandler
-import queue
 import socket
-import struct
 import threading
+import logging
 import argparse
+from queue import Queue
+from logging.handlers import RotatingFileHandler
 
-HOST, PORT = '0.0.0.0', 9000
-msg_queue = queue.Queue()
-stop_event = threading.Event()
+# ==========================
+# Configuración del logger
+# ==========================
+def configurar_logger(log_file: str, max_bytes: int, backups: int):
+    logger = logging.getLogger("ChatServer")
+    logger.setLevel(logging.INFO)
 
-def logger():
-    log = logging.getLogger('chat')
-    log.setLevel(logging.INFO)
-    
-    # Handler para archivo rotativo
-    file_handler = RotatingFileHandler('chat.log', maxBytes=5_000_000, backupCount=3)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-    log.addHandler(file_handler)
-    
-    # Handler para consola
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-    log.addHandler(console_handler)
-    
-    while not stop_event.is_set() or not msg_queue.empty():
-        try:
-            client_id, text = msg_queue.get(timeout=1)
-            log.info('%s | %s', client_id, text)
-        except queue.Empty:
-            pass
+    handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backups, encoding="utf-8")
+    formatter = logging.Formatter("%(asctime)s | %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
-class ClientHandler(threading.Thread):
-    def __init__(self, conn, addr):
-        super().__init__(daemon=True)
-        self.conn, self.addr = conn, addr
+    console = logging.StreamHandler()
+    console.setFormatter(formatter)
+    logger.addHandler(console)
+    return logger
 
-    def run(self):
-        with self.conn:
-            client_id = f'{self.addr[0]}:{self.addr[1]}'
-            print(f'Cliente conectado: {client_id}')
-            while not stop_event.is_set():
-                try:
-                    raw_len = self.conn.recv(4)
-                    if not raw_len:
-                        break
-                    (length,) = struct.unpack('!I', raw_len)
-                    
-                    # Leer el mensaje completo
-                    buf = bytearray()
-                    while len(buf) < length:
-                        chunk = self.conn.recv(length - len(buf))
-                        if not chunk:
-                            break
-                        buf.extend(chunk)
-                    
-                    if len(buf) == length:
-                        data = buf.decode()
-                        msg_queue.put((client_id, data))
-                except (ConnectionError, struct.error, OSError):
-                    break
-            print(f'Cliente desconectado: {client_id}')
+# ==========================
+# Hilo para manejar clientes
+# ==========================
+def manejar_cliente(conn: socket.socket, addr, cola: Queue):
+    try:
+        while True:
+            length_bytes = conn.recv(4)
+            if not length_bytes:
+                break
+            length = int.from_bytes(length_bytes, "big")
+            data = conn.recv(length)
+            if not data:
+                break
+            mensaje = data.decode("utf-8", errors="replace")
+            cola.put((addr, mensaje))
+    except ConnectionResetError:
+        pass
+    finally:
+        conn.close()
 
+# ==========================
+# Hilo logger
+# ==========================
+def logger_thread(cola: Queue, logger: logging.Logger):
+    while True:
+        addr, mensaje = cola.get()
+        logger.info(f"{addr[0]}:{addr[1]} | {mensaje}")
+        cola.task_done()
+
+# ==========================
+# Main server
+# ==========================
 def main():
-    parser = argparse.ArgumentParser(description='Servidor de chat TCP')
-    parser.add_argument('--host', default='0.0.0.0', help='IP de escucha (default: 0.0.0.0)')
-    parser.add_argument('--port', type=int, default=9000, help='Puerto de escucha (default: 9000)')
-    parser.add_argument('--log-file', default='chat.log', help='Archivo de log (default: chat.log)')
-    parser.add_argument('--max-bytes', type=int, default=5_000_000, help='Tamaño máximo del archivo de log (default: 5MB)')
-    parser.add_argument('--backups', type=int, default=3, help='Número de archivos de respaldo (default: 3)')
-    
+    parser = argparse.ArgumentParser(description="Servidor de chat TCP con soporte SHA-256")
+    parser.add_argument("--host", default="0.0.0.0", help="Host donde escuchar")
+    parser.add_argument("--port", type=int, default=9000, help="Puerto del servidor")
+    parser.add_argument("--log-file", default="chat.log", help="Archivo de logs")
+    parser.add_argument("--max-bytes", type=int, default=5_000_000, help="Tamaño máximo del log")
+    parser.add_argument("--backups", type=int, default=3, help="Número de backups del log")
     args = parser.parse_args()
-    
-    global HOST, PORT
-    HOST, PORT = args.host, args.port
-    
-    # Actualizar el handler de archivo con los argumentos
-    def logger():
-        log = logging.getLogger('chat')
-        log.setLevel(logging.INFO)
-        
-        # Handler para archivo rotativo
-        file_handler = RotatingFileHandler(args.log_file, maxBytes=args.max_bytes, backupCount=args.backups)
-        file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-        log.addHandler(file_handler)
-        
-        # Handler para consola
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-        log.addHandler(console_handler)
-        
-        while not stop_event.is_set() or not msg_queue.empty():
-            try:
-                client_id, text = msg_queue.get(timeout=1)
-                log.info('%s | %s', client_id, text)
-            except queue.Empty:
-                pass
-    
-    threading.Thread(target=logger, daemon=True).start()
-    
+
+    logger = configurar_logger(args.log_file, args.max_bytes, args.backups)
+    cola = Queue()
+    threading.Thread(target=logger_thread, args=(cola, logger), daemon=True).start()
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, PORT))
+        s.bind((args.host, args.port))
         s.listen()
-        print(f'🚀 Servidor escuchando en {HOST}:{PORT}')
-        print(f'📝 Logs guardándose en: {args.log_file}')
-        print('💡 Presiona Ctrl+C para detener el servidor')
+        print(f"🚀 Servidor escuchando en {args.host}:{args.port}")
+        print(f"📝 Logs guardándose en: {args.log_file}")
+
         try:
             while True:
                 conn, addr = s.accept()
-                ClientHandler(conn, addr).start()
+                print(f"Cliente conectado: {addr[0]}:{addr[1]}")
+                threading.Thread(target=manejar_cliente, args=(conn, addr, cola), daemon=True).start()
         except KeyboardInterrupt:
-            print('\n🛑 Deteniendo servidor...')
-            stop_event.set()
+            print("\n🛑 Servidor detenido.")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
