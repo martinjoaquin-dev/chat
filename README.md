@@ -1,221 +1,293 @@
-# Chat Grupal TCP — Servidor + Clientes en Python
+# 🔐 Chat TCP con Cifrado Asimétrico
 
-> **Versión:** 0.1.0  
+Un sistema de chat cliente-servidor TCP con cifrado asimétrico robusto implementado en Python.
 
----
+## 🚀 Características
 
-## 📑 Descripción general
-Este proyecto implementa un **chat grupal punto-a-punto** donde:
+### Seguridad
+- **RSA-4096**: Para firmas digitales y autenticación
+- **ECDH P-384**: Para intercambio seguro de claves
+- **AES-256-GCM**: Cifrado simétrico de grado militar
+- **HMAC-SHA256**: Verificación adicional de integridad
+- **No-repudio**: Firma digital de cada mensaje
+- **Autenticación**: Verificación de identidad del remitente
+- **IV aleatorio**: Cada mensaje usa un vector de inicialización único
 
-* Un **servidor TCP** escucha en un puerto configurable, acepta múltiples clientes y **solo recibe** sus mensajes (no los re‑envía).  
-* Cada cliente envía texto; el servidor añade *timestamp* e ID de cliente y **persiste** todo en un log rotativo.  
-* Se usa exclusivamente la biblioteca estándar de Python 3 (`socket`, `threading`, `queue`, `logging`).  
+### Funcionalidades
+- ✅ Comunicación TCP en tiempo real
+- ✅ **Intercambio automático de claves públicas**
+- ✅ **Firma digital de mensajes**
+- ✅ **Verificación de identidad**
+- ✅ Cifrado/descifrado transparente
+- ✅ **Visualización de datos cifrados** en tiempo real
+- ✅ Logging rotativo con archivos de respaldo
+- ✅ Manejo robusto de errores
+- ✅ Interfaz de línea de comandos configurable
+- ✅ Soporte para múltiples clientes simultáneos
+- ✅ **Scripts de demostración** del cifrado
 
-Su propósito es servir de ejemplo claro y mínimo de comunicación concurrente con hilos y sockets.
+## 🏗️ Arquitectura
 
----
-
-## 🏛️ Arquitectura
-
+### Protocolo de Cifrado Asimétrico
 ```
-Servidor (main)
-│
-├─ accept()              ← bucle principal
-│   └─ ClientHandler ── hilo por cliente
-│        └─ recv()        ← lectura de mensajes
-│
-└─ LoggerThread ── escribe en chat.log
+1. Intercambio de claves públicas:
+   Cliente → Servidor: Clave pública RSA + ECDH
+   Servidor → Cliente: Clave pública RSA + ECDH
+
+2. Cálculo de secreto compartido:
+   Ambos calculan: ECDH(privada_local, pública_peer)
+
+3. Mensaje cifrado:
+   [4 bytes: longitud total]
+   [12 bytes: IV (nonce)]
+   [16 bytes: tag de autenticación GCM]
+   [32 bytes: HMAC-SHA256]
+   [resto: ciphertext AES-256-GCM]
+
+4. Firma digital:
+   [4 bytes: longitud firma]
+   [resto: firma RSA-4096]
 ```
 
-* **Thread‑per‑connection**: simplicidad > consumo de memoria (apto hasta ≈ 1 000 clientes).  
-* **Cola thread‑safe** (`queue.Queue`) desacopla E/S de red y disco.  
-* **Protocolo**: `| 4 bytes BE length | UTF‑8 payload |` (evita fragmentación de mensajes).  
+### Flujo de Comunicación
+1. **Intercambio de claves** → Claves públicas RSA + ECDH
+2. **Cálculo ECDH** → Secreto compartido para AES
+3. **Cliente** → Cifra mensaje con AES-256-GCM + Firma con RSA-4096
+4. **Red** → Transmisión segura de datos cifrados + firma
+5. **Servidor** → Verifica firma RSA + Descifra con AES-256-GCM
+6. **Log** → Almacena mensaje con identidad verificada
 
----
+## 📦 Instalación
 
-## 🚀 Primeros pasos
+### Requisitos
+- Python 3.7+
+- pip (gestor de paquetes)
 
-### 1. Prerrequisitos
-
-| Requisito | Versión mínima |
-|-----------|----------------|
-| Python    | 3.10 |
-| SO        | Linux, macOS o Windows |
-
-> **Tip:** crear un entorno virtual:  
-> `python -m venv .venv && source .venv/bin/activate`
-
-### 2. Ejecutar el sistema
-
+### Dependencias
 ```bash
-# 1. Arrancar el servidor (Terminal 1)
-python server.py --port 9000
-
-# 2. Conectar cliente (Terminal 2)
-python client.py --host 127.0.0.1 --port 9000
-
-# 3. Escribir mensajes
-Hola mundo 👋
-Mensaje desde cliente 1
-
-# 4. Conectar más clientes (Terminal 3, 4, etc.)
-python client.py --host 127.0.0.1 --port 9000
-Hola desde cliente 2
+pip install -r requirements.txt
 ```
 
-### 3. Ver los resultados
+### Dependencias incluidas
+- `cryptography>=41.0.0`: Librería criptográfica de alto nivel
 
-**En el servidor verás:**
-```
-🚀 Servidor escuchando en 0.0.0.0:9000
-📝 Logs guardándose en: chat.log
-💡 Presiona Ctrl+C para detener el servidor
-Cliente conectado: 127.0.0.1:52344
-2025-01-24 20:15:42,923 | 127.0.0.1:52344 | Hola mundo 👋
-2025-01-24 20:15:45,123 | 127.0.0.1:52344 | Mensaje desde cliente 1
-Cliente conectado: 127.0.0.1:52350
-2025-01-24 20:15:48,456 | 127.0.0.1:52350 | Hola desde cliente 2
-```
+## 🚀 Uso
 
-**En el cliente verás:**
-```
-✅ Conectado a 127.0.0.1:9000
-💬 Escribe mensajes y presiona Enter (Ctrl+D para salir)
-──────────────────────────────────────────────────
-Hola mundo 👋
-✔ Mensaje enviado
-```
-
----
-
-## ⚙️ Configuración rápida
-
-### Servidor (`server.py`)
-
-| Opción CLI          | Valor por defecto | Descripción                                |
-|---------------------|-------------------|--------------------------------------------|
-| `--host`            | `0.0.0.0`         | IP en la que el servidor escuchará         |
-| `--port`            | `9000`            | Puerto TCP                                 |
-| `--log-file`        | `chat.log`        | Ruta del archivo de log                    |
-| `--max-bytes`       | `5_000_000`       | Tamaño máx. de cada archivo de log         |
-| `--backups`         | `3`               | Nº máximo de archivos rotados              |
-
-### Cliente (`client.py`)
-
-| Opción CLI          | Valor por defecto | Descripción                                |
-|---------------------|-------------------|--------------------------------------------|
-| `--host`            | `127.0.0.1`       | IP del servidor                            |
-| `--port`            | `9000`            | Puerto del servidor                        |
-
-### Ejemplos de uso
-
+### 1. Iniciar el Servidor
 ```bash
-# Servidor en puerto personalizado
-python server.py --port 5000 --log-file mi_chat.log
-
-# Cliente conectándose a servidor remoto
-python client.py --host 192.168.1.100 --port 5000
-
-# Servidor con logs más grandes
-python server.py --max-bytes 10000000 --backups 5
+python server.py
 ```
 
----
+**Opciones del servidor:**
+```bash
+python server.py --host 0.0.0.0 --port 9000 --key-size 4096
+```
 
-## 📝 Estructura del repositorio
+**Parámetros:**
+- `--host`: IP de escucha (default: 0.0.0.0)
+- `--port`: Puerto de escucha (default: 9000)
+- `--key-size`: Tamaño de clave RSA (default: 4096)
+- `--log-file`: Archivo de log (default: chat.log)
+- `--max-bytes`: Tamaño máximo del log (default: 5MB)
+- `--backups`: Número de archivos de respaldo (default: 3)
+
+### 2. Conectar Cliente
+```bash
+python client.py
+```
+
+**Opciones del cliente:**
+```bash
+python client.py --host 127.0.0.1 --port 9000 --key-size 4096
+```
+
+**Parámetros:**
+- `--host`: IP del servidor (default: 127.0.0.1)
+- `--port`: Puerto del servidor (default: 9000)
+- `--key-size`: Tamaño de clave RSA (default: 4096)
+
+### 3. Ejemplo de Uso
+```bash
+# Terminal 1: Servidor
+python server.py --key-size 4096
+
+# Terminal 2: Cliente 1
+python client.py --key-size 4096
+
+# Terminal 3: Cliente 2
+python client.py --key-size 4096
+```
+
+## 🔧 Configuración Avanzada
+
+### Cambiar Tamaño de Clave RSA
+```bash
+# Servidor con clave RSA-2048 (más rápido)
+python server.py --key-size 2048
+
+# Cliente con la misma configuración
+python client.py --key-size 2048
+```
+
+### Configurar Logging
+```bash
+# Servidor con logs personalizados
+python server.py --log-file mi_chat.log --max-bytes 10000000 --backups 5
+```
+
+## 🧪 Pruebas
+
+### Probar Cifrado Asimétrico
+```bash
+python crypto_utils_asymmetric.py
+```
+
+### Ver Estructura del Cifrado
+```bash
+python mostrar_cifrado_asimetrico.py
+```
+
+### Probar Comunicación
+1. Inicia el servidor
+2. Conecta múltiples clientes
+3. Envía mensajes desde diferentes clientes
+4. **Observa el intercambio de claves** en tiempo real
+5. **Verifica las firmas digitales** automáticamente
+6. Verifica que aparezcan en el log del servidor
+
+### Visualización en Tiempo Real
+- **Cliente**: Muestra datos cifrados y firma digital
+- **Servidor**: Muestra datos recibidos, descifrados y verificación de firma
+- **Estructura**: IV, Tag, HMAC, Ciphertext + Firma RSA
+- **Identidad**: Hash de clave pública para identificación
+
+## 🔒 Seguridad
+
+### Algoritmos Utilizados
+- **RSA-4096**: Cifrado asimétrico de 4096 bits con autenticación
+- **ECDH P-384**: Intercambio de claves con curva elíptica de 384 bits
+- **AES-256-GCM**: Cifrado simétrico de 256 bits con autenticación
+- **HMAC-SHA256**: Verificación de integridad con clave secreta
+- **PSS Padding**: Relleno probabilístico para firmas RSA
+
+### Características de Seguridad
+- ✅ **Confidencialidad**: AES-256-GCM
+- ✅ **Integridad**: HMAC-SHA256
+- ✅ **Autenticación**: RSA-4096
+- ✅ **No-repudio**: Firma digital
+- ✅ **Distribución de claves**: ECDH P-384
+- ✅ **Detección de tampering**: Falla si el mensaje fue alterado
+- ✅ **Verificación de identidad**: Cada mensaje está firmado
+
+### Buenas Prácticas
+- ✅ Usa claves RSA de al menos 2048 bits (recomendado 4096)
+- ✅ Verifica la identidad de los participantes
+- ✅ Monitorea los logs para actividad sospechosa
+- ✅ Considera rotación periódica de claves
+- ✅ Almacena claves privadas de forma segura
+
+### Limitaciones Actuales
+- ⚠️ Claves generadas en memoria (no persistentes)
+- ⚠️ No hay revocación de claves
+- ⚠️ No hay certificados digitales
+- ⚠️ No hay autenticación de usuarios
+
+## 📊 Comparación: Simétrico vs Asimétrico
+
+| Característica | Simétrico | Asimétrico |
+|---------------|-----------|------------|
+| **Velocidad** | ⚡ Muy rápido | 🐌 Más lento |
+| **Complejidad** | 🟢 Simple | 🔴 Complejo |
+| **Distribución de claves** | ❌ Problemática | ✅ Segura |
+| **No-repudio** | ❌ No | ✅ Sí |
+| **Autenticación** | ❌ Limitada | ✅ Completa |
+| **Escalabilidad** | 🟡 Limitada | 🟢 Excelente |
+| **Uso recomendado** | Chat grupal | Transacciones críticas |
+
+## 🐛 Solución de Problemas
+
+### Error: "No se pudo conectar"
+- Verifica que el servidor esté ejecutándose
+- Comprueba la IP y puerto
+- Revisa el firewall
+
+### Error: "Intercambio de claves falló"
+- Verifica que las claves RSA sean compatibles
+- Comprueba la conectividad de red
+- Revisa los logs del servidor
+
+### Error: "Firma digital inválida"
+- Verifica que las claves públicas coincidan
+- Comprueba que no haya corrupción de datos
+- Revisa la integridad de la conexión
+
+### Error: "Datos cifrados demasiado cortos"
+- El mensaje puede estar corrupto
+- Verifica la integridad de la conexión
+- Comprueba el intercambio de claves
+
+## 📁 Estructura del Proyecto
 
 ```
 chat/
-├── client.py        # CLI para enviar mensajes
-├── server.py        # Servidor multihilo
-├── README.md
-└── tests/           # Unit y stress tests
+├── client.py                      # Cliente TCP con cifrado asimétrico
+├── server.py                      # Servidor TCP con descifrado asimétrico
+├── crypto_utils_asymmetric.py     # Utilidades criptográficas asimétricas
+├── mostrar_cifrado_asimetrico.py  # Script de demostración del cifrado asimétrico
+├── requirements.txt               # Dependencias Python
+├── README.md                      # Este archivo
+└── chat.log                       # Logs del servidor (generado automáticamente)
 ```
 
----
+## 🔄 Versiones
 
-## 🛠️ Guía de desarrollo
+### Rama Actual: `feature/asymmetric-encryption`
+- ✅ Cifrado asimétrico RSA-4096 + ECDH P-384 + AES-256-GCM
+- ✅ Intercambio automático de claves públicas
+- ✅ Firma digital y verificación
+- ✅ Cliente y servidor modificados
+- ✅ Utilidades criptográficas completas
 
-1. **Instalar dependencias de test**  
-   ```bash
-   pip install -r tests/requirements.txt
-   ```
-2. **Ejecutar pruebas**  
-   ```bash
-   pytest -q
-   ```
-3. **Lint + seguridad**  
-   ```bash
-   pip install ruff bandit
-   ruff .
-   bandit -r .
-   ```
+### Rama Anterior: `feature/symmetric-encryption`
+- ✅ Cifrado simétrico AES-256-GCM + HMAC
+- ✅ Clave compartida predefinida
+- ✅ Implementación más simple
 
----
+## 📚 Referencias Técnicas
 
-## 📂 Logging & persistencia
+- [RSA Specification](https://tools.ietf.org/html/rfc3447)
+- [ECDH Specification](https://tools.ietf.org/html/rfc7748)
+- [AES-GCM Specification](https://tools.ietf.org/html/rfc5288)
+- [HMAC Specification](https://tools.ietf.org/html/rfc2104)
+- [Cryptography Library](https://cryptography.io/)
 
-### Formato de logs
+## 👥 Contribuciones
 
-Cada entrada se registra con timestamp, ID del cliente y mensaje:
-```
-2025-01-24 20:15:42,923 | 127.0.0.1:52344 | Hola mundo 👋
-2025-01-24 20:15:45,123 | 127.0.0.1:52350 | Mensaje desde cliente 2
-```
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
-### Características
+## 📄 Licencia
 
-* **Doble salida**: Los mensajes se muestran tanto en consola como en archivo
-* **Rotación automática**: `RotatingFileHandler` evita crecimiento ilimitado
-* **Configuración flexible**: Tamaño máximo y número de archivos de respaldo
-* **Thread-safe**: Múltiples clientes pueden escribir simultáneamente
-
-### Archivos generados
-
-```
-chat.log          # Log actual
-chat.log.1        # Primer respaldo
-chat.log.2        # Segundo respaldo
-chat.log.3        # Tercer respaldo
-```
-
-> **Tip para producción**: Monta `/logs` en un volumen independiente para mejor rendimiento.
+Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
 
 ---
 
-## 🛡️ Buenas prácticas de seguridad
+**⚠️ Advertencia de Seguridad**: Este es un proyecto educativo. Para uso en producción, implementa medidas de seguridad adicionales como certificados digitales, revocación de claves, y auditoría de seguridad.| README.md | 01efe997695b7ca6ff2f7c0f51ed0a66 | 2025-10-08 | NombreTeam |
 
-* No ejecutar el servidor como **root**.  
-* Limitar el tamaño máximo de mensaje (ej. 4 096 B) para mitigar DoS.  
-* Establecer *timeouts* con `socket.settimeout(1)` para que los hilos no queden bloqueados.  
-* Si se sustituye el log por BBDD, validar/escapar datos antes de insertar.
 
----
+## 📝 Control de Versiones
 
-## 🤝 Contribuir
-
-1. **Fork → branch → PR** con nombre descriptivo (`feature/add-tls`).  
-2. Seguir la convención **Conventional Commits**.  
-3. Incluir tests y actualización de documentación cuando aplique.
-
----
-
-## ❓ FAQ
-
-| Pregunta | Respuesta corta |
-|----------|-----------------|
-| ¿Por qué no usar `asyncio`? | El objetivo didáctico es mostrar hilos + sockets; `asyncio` añade complejidad innecesaria. |
-| ¿Se puede convertir en broadcast? | Sí: guarda los sockets de los clientes y re‑envía con `sendall()` a cada uno. |
-| ¿TLS/SSL? | Se puede envolver el socket con `ssl.wrap_socket()` o usar un proxy como `stunnel`. |
-| ¿Por qué no veo mensajes en el servidor? | Asegúrate de que el servidor esté corriendo y que los clientes se conecten al puerto correcto. |
-| ¿Cómo salir del cliente sin error? | Usa `Ctrl+D` (Linux/macOS) o `Ctrl+Z` + `Enter` (Windows). |
-| ¿El servidor puede manejar muchos clientes? | Sí, hasta ~1000 clientes simultáneos con la configuración actual. |
-
----
-
-## 📜 Licencia
-
-Distribuido bajo la licencia **(DEFINIR NOMBRE)**. Consulta el archivo `LICENSE` para más detalles.
-
----
-
+| Archivo                         | MD5                              | Fecha de cambio|
+|---------------------------------|----------------------------------|----------------|
+| README.md                       | 8f02923001cc1e7e42324ed253cd0fec | 2025-10-08     |
+| __pycache__                     |                                  | 2025-10-08     |
+| chat                            |                                  |                |
+| chat.log                        | d7e83eb0c924c48db2d539af3d0b9bc4 | 2025-10-08     |
+| client.py                       | 62ddf99888a2f0d20641ee4e4344f133 | 2025-10-08     |
+| crypto_utils_asymmetric.py      | de411e77dfe63776add713e50189ef01 | 2025-10-08     |
+| mostrar_cifrado_asimetrico.py   | 031c161ab7da05cf34d08483d75b9ec6 | 2025-10-08     |
+| requirements.txt                | f075620e4fc1dfbcfd4e88038cd67c7e | 2025-10-07     |
+| server.py                       | e9c0bb12f6b22477bc02270165efec1b | 2025-10-08     |
