@@ -1,0 +1,5 @@
+Este es un archivo de prueba para la firma digital.
+Fecha: 2025-11-19
+Versión: 6.0
+Sistema de Chat Seguro con Firma Digital
+

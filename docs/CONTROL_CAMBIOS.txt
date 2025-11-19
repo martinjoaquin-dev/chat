@@ -3,31 +3,84 @@
                     Documento para Presentación con Cliente
 ================================================================================
 
-PROYECTO: Chat TCP/SSL con Cifrado Híbrido - Versión Asíncrona
+PROYECTO: Sistema de Chat Seguro con Firma Digital - Versión Asíncrona
 FECHA INICIO: 2025-10-08
 ÚLTIMA ACTUALIZACIÓN: 2025-11-19
-VERSIÓN ACTUAL: 5.0
+VERSIÓN ACTUAL: 6.0
 
 ================================================================================
 RESUMEN EJECUTIVO
 ================================================================================
 
-Este proyecto implementa un sistema de chat cliente-servidor con cifrado
-híbrido (RSA + AES) de grado empresarial, migrado a arquitectura asíncrona
+Este proyecto implementa un sistema completo de comunicación segura y firma
+digital de documentos de grado empresarial, migrado a arquitectura asíncrona
 para máxima escalabilidad y rendimiento. El sistema utiliza RSA-2048 para
 intercambio seguro de claves y AES-256-GCM con HMAC-SHA256 para cifrado rápido
-de mensajes. La versión 5.0 agrega SSL/TLS para cifrado de transporte y
-variables de entorno para configuración flexible, removiendo valores hardcodeados
-y siguiendo mejores prácticas de seguridad.
+de mensajes. La versión 6.0 agrega firma digital de documentos (TXT, PDF, ZIP),
+servidor HTTP para subida de archivos, y documentación ejecutiva completa
+(Resumen Ejecutivo, Project Charter, Presupuestos) para presentación con
+stakeholders y usuarios no técnicos.
 
 ================================================================================
 HISTORIAL DE VERSIONES
 ================================================================================
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ VERSIÓN 5.0 - SSL/TLS y Variables de Entorno                                │
+│ VERSIÓN 6.0 - Firma Digital y Documentación Ejecutiva                      │
 │ Fecha: 2025-11-19                                                           │
 │ Estado: COMPLETADO                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CAMBIOS IMPLEMENTADOS:
+
+1. Módulo de Firma Digital
+   ✓ Firma digital para archivos TXT, PDF, ZIP
+   ✓ Generación de pares de claves RSA para firma
+   ✓ Verificación de firmas digitales
+   ✓ Algoritmo RSA-PSS con SHA256
+   ✓ Soporte para múltiples archivos
+
+2. Servidor de Archivos HTTP
+   ✓ Servidor HTTP asíncrono con aiohttp
+   ✓ Endpoints RESTful para subir y verificar archivos
+   ✓ Validación de tipos y tamaños de archivo
+   ✓ Almacenamiento seguro de archivos y firmas
+   ✓ Preparado para despliegue en AWS/VM
+
+3. Documentación Ejecutiva
+   ✓ RESUMEN_EJECUTIVO.md: Resumen para stakeholders
+   ✓ PROJECT_CHARTER.md: Carta del proyecto
+   ✓ PRESUPUESTOS.md: Análisis de costos detallado
+   ✓ README.md: Secciones para no-TI e ingeniería
+
+4. Mejoras de Usabilidad
+   ✓ README con guía para usuarios no técnicos
+   ✓ Documentación técnica separada
+   ✓ Ejemplos claros de uso
+   ✓ Instrucciones paso a paso
+
+BENEFICIOS OBTENIDOS:
+- Autenticidad: Firma digital garantiza origen de documentos
+- Integridad: Verificación automática de alteraciones
+- Documentación: Completa para todos los niveles de usuario
+- Escalabilidad: Preparado para producción empresarial
+
+ARCHIVOS MODIFICADOS:
+- README.md (MD5: verificar con calcular_md5.py)
+- requirements.txt (MD5: verificar con calcular_md5.py)
+- env.example (MD5: verificar con calcular_md5.py)
+
+ARCHIVOS NUEVOS:
+- digital_signature.py (MD5: 258fc85d3be210d0f324901e058b19e2)
+- file_server.py (MD5: 571bba308266bcb4a1e3bc0c2da34da7)
+- RESUMEN_EJECUTIVO.md
+- PROJECT_CHARTER.md
+- PRESUPUESTOS.md
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VERSIÓN 5.0 - SSL/TLS y Variables de Entorno                                │
+│ Fecha: 2025-11-19                                                           │
+│ Estado: COMPLETADO (base para v6.0)                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 CAMBIOS IMPLEMENTADOS:
@@ -213,6 +266,8 @@ CONTROL DE INTEGRIDAD - MD5 DE ARCHIVOS
 │ server.py                    │ 348ebfd6dbfcf67f0deb930d6a3486ab │ 2025-11-19   │
 │ client.py                    │ b07f5e3d3ccda837997644139c45c44b │ 2025-11-19   │
 │ crypto_utils.py              │ 2fe800977b7e5b67185cf7a5c145f31c │ 2025-11-19   │
+│ digital_signature.py         │ 258fc85d3be210d0f324901e058b19e2 │ 2025-11-19   │
+│ file_server.py               │ 571bba308266bcb4a1e3bc0c2da34da7 │ 2025-11-19   │
 │ generate_ssl_cert.py         │ 6e5d4821aabccd97433a0011b412dbe1 │ 2025-11-19   │
 │ mostrar_cifrado.py           │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
 │ calcular_md5.py              │ 1832f95ca60a02101473cee1e5434ba9 │ 2025-11-19   │

@@ -13,7 +13,11 @@ import argparse
 import os
 import ssl
 from datetime import datetime
-from crypto_utils import HybridCrypto
+import sys
+import os
+# Agregar directorio raíz al path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from core.crypto_utils import HybridCrypto
 from dotenv import load_dotenv
 
 # Cargar variables de entorno

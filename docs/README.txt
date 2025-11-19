@@ -4,7 +4,101 @@
 
 Este documento registra todos los cambios realizados en el proyecto de chat,
 incluyendo la migración a arquitectura asíncrona, cifrado híbrido, validación
-SHA256, y la implementación de SSL/TLS con variables de entorno.
+SHA256, SSL/TLS, y la implementación de firma digital de documentos.
+
+================================================================================
+VERSIÓN 6.0 - Firma Digital y Servidor de Archivos
+Fecha: 2025-11-19
+================================================================================
+
+DESCRIPCIÓN GENERAL:
+Se implementó un módulo completo de firma digital para archivos (TXT, PDF, ZIP)
+y un servidor HTTP asíncrono para subir y firmar archivos. Se agregó documentación
+ejecutiva de alto nivel (Resumen Ejecutivo, Project Charter, Presupuestos) y se
+mejoró el README con secciones diferenciadas para usuarios no técnicos e ingenieros.
+
+CAMBIOS PRINCIPALES:
+
+1. MÓDULO DE FIRMA DIGITAL (digital_signature.py)
+   - Nueva clase: DigitalSignature para manejar firmas digitales
+   - Soporte para archivos: .txt, .pdf, .zip
+   - Generación de pares de claves RSA para firma
+   - Algoritmo: RSA-PSS con SHA256
+   - Funciones:
+     * sign_file(): Firma cualquier archivo
+     * sign_txt_file(): Firma archivos de texto
+     * sign_pdf_file(): Firma archivos PDF
+     * sign_zip_file(): Firma archivos ZIP
+     * verify_file(): Verifica firmas digitales
+     * sign_multiple_files(): Firma múltiples archivos
+
+2. SERVIDOR DE ARCHIVOS (file_server.py)
+   - Servidor HTTP asíncrono con aiohttp
+   - Endpoints RESTful:
+     * POST /upload - Subir y firmar archivo
+     * POST /verify - Verificar firma de archivo
+     * GET /files - Listar archivos subidos
+     * GET /health - Estado del servidor
+   - Validación de tipos de archivo
+   - Límite de tamaño configurable
+   - Almacenamiento de archivos y firmas
+
+3. DOCUMENTACIÓN EJECUTIVA
+   - RESUMEN_EJECUTIVO.md: Resumen del proyecto para stakeholders
+   - PROJECT_CHARTER.md: Carta del proyecto con objetivos y alcance
+   - PRESUPUESTOS.md: Análisis detallado de costos
+   - README.md: Actualizado con secciones para no-TI e ingeniería
+
+4. MEJORAS EN README
+   - Sección "Guía para Usuarios No Técnicos"
+   - Sección "Documentación Técnica" para ingenieros
+   - Instrucciones claras para ambos tipos de usuarios
+   - Ejemplos de uso del servidor de archivos
+
+5. ARCHIVOS NUEVOS
+   - digital_signature.py: Módulo de firma digital
+   - file_server.py: Servidor HTTP para archivos
+   - RESUMEN_EJECUTIVO.md: Documentación ejecutiva
+   - PROJECT_CHARTER.md: Carta del proyecto
+   - PRESUPUESTOS.md: Análisis de presupuestos
+
+BENEFICIOS DE LA FIRMA DIGITAL:
+
+1. Autenticidad:
+   - Garantiza que el archivo proviene del firmante
+   - Previene suplantación de identidad
+   - Trazabilidad de documentos
+
+2. Integridad:
+   - Detecta cualquier modificación del archivo
+   - Verificación automática de firmas
+   - Protección contra alteración
+
+3. No Repudio:
+   - El firmante no puede negar haber firmado
+   - Evidencia criptográfica de la firma
+   - Timestamps en cada firma
+
+SEGURIDAD MEJORADA:
+
+- Firma Digital: RSA-PSS con SHA256 para documentos
+- Servidor de Archivos: Validación de tipos y tamaños
+- Almacenamiento Seguro: Archivos y firmas en directorios separados
+- Documentación Completa: Para usuarios técnicos y no técnicos
+
+MD5 DE ARCHIVOS - VERSIÓN 6.0 (2025-11-19):
+
+| Archivo | MD5 | Fecha de cambio |
+|---------|-----|-----------------|
+| server.py | `348ebfd6dbfcf67f0deb930d6a3486ab` | 2025-11-19 |
+| client.py | `b07f5e3d3ccda837997644139c45c44b` | 2025-11-19 |
+| crypto_utils.py | `2fe800977b7e5b67185cf7a5c145f31c` | 2025-11-19 |
+| digital_signature.py | `258fc85d3be210d0f324901e058b19e2` | 2025-11-19 |
+| file_server.py | `571bba308266bcb4a1e3bc0c2da34da7` | 2025-11-19 |
+| requirements.txt | (verificar con calcular_md5.py) | 2025-11-19 |
+| generate_ssl_cert.py | `6e5d4821aabccd97433a0011b412dbe1` | 2025-11-19 |
+| mostrar_cifrado.py | `c6ea27b39da48f363cfb2102994f33fd` | 2025-10-22 |
+| calcular_md5.py | `1832f95ca60a02101473cee1e5434ba9` | 2025-11-19 |
 
 ================================================================================
 VERSIÓN 5.0 - SSL/TLS y Variables de Entorno
