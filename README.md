@@ -1,11 +1,12 @@
-# 🔐 Chat TCP Asíncrono con Cifrado Híbrido
+# 🔐 Chat TCP Asíncrono con Cifrado Híbrido y SSL/TLS
 
-Un sistema de chat cliente-servidor TCP **asíncrono** con cifrado híbrido (RSA + AES) de grado empresarial implementado en Python. Utiliza `asyncio` para manejo eficiente de múltiples conexiones simultáneas.
+Un sistema de chat cliente-servidor TCP **asíncrono** con cifrado híbrido (RSA + AES) y SSL/TLS de grado empresarial implementado en Python. Utiliza `asyncio` para manejo eficiente de múltiples conexiones simultáneas. Configuración mediante variables de entorno sin valores hardcodeados.
 
 ## 🚀 Características
 
 ### Seguridad
 - **Cifrado Híbrido**: RSA-2048 para intercambio de claves + AES-256-GCM para mensajes
+- **SSL/TLS**: Cifrado de transporte para conexiones seguras (v5.0)
 - **RSA-2048**: Cifrado asimétrico para intercambio seguro de claves AES
 - **AES-256-GCM**: Cifrado simétrico autenticado de grado militar para mensajes
 - **HMAC-SHA256**: Verificación adicional de integridad del payload cifrado
@@ -13,6 +14,7 @@ Un sistema de chat cliente-servidor TCP **asíncrono** con cifrado híbrido (RSA
 - **Intercambio de claves seguro**: Sin necesidad de compartir contraseñas
 - **Protección contra tampering**: Detección automática de mensajes alterados
 - **IV aleatorio**: Cada mensaje usa un vector de inicialización único
+- **Variables de entorno**: Sin valores hardcodeados (v5.0)
 
 ### Funcionalidades
 - ✅ **Arquitectura asíncrona** con asyncio (v2.0)
@@ -73,8 +75,24 @@ pip install -r requirements.txt
 
 ### Dependencias incluidas
 - `cryptography>=41.0.0`: Librería criptográfica de alto nivel
+- `python-dotenv>=1.0.0`: Gestión de variables de entorno (v5.0)
 
 ## 🚀 Uso
+
+### Configuración Inicial
+
+1. **Configurar variables de entorno:**
+   ```bash
+   cp .env.example .env
+   # Edita .env con tus valores
+   ```
+
+2. **Generar certificados SSL (para desarrollo):**
+   ```bash
+   python generate_ssl_cert.py
+   ```
+   
+   **Nota:** Para producción, usa certificados de una CA válida (Let's Encrypt, etc.)
 
 ### 1. Iniciar el Servidor
 ```bash
@@ -83,17 +101,18 @@ python server.py
 
 **Opciones del servidor:**
 ```bash
-python server.py --host 0.0.0.0 --port 9000
+python server.py --host 0.0.0.0 --port 9000 --no-ssl
 ```
 
 **Parámetros:**
-- `--host`: IP de escucha (default: 0.0.0.0)
-- `--port`: Puerto de escucha (default: 9000)
-- `--log-file`: Archivo de log (default: chat.log)
-- `--max-bytes`: Tamaño máximo del log (default: 5MB)
-- `--backups`: Número de archivos de respaldo (default: 3)
+- `--host`: IP de escucha (default: desde .env o 0.0.0.0)
+- `--port`: Puerto de escucha (default: desde .env o 9000)
+- `--log-file`: Archivo de log (default: desde .env o chat.log)
+- `--max-bytes`: Tamaño máximo del log (default: desde .env o 5MB)
+- `--backups`: Número de archivos de respaldo (default: desde .env o 3)
+- `--no-ssl`: Deshabilitar SSL/TLS (usar TCP sin cifrado de transporte)
 
-**Nota:** Ya no se requiere contraseña compartida. El sistema usa cifrado híbrido con intercambio automático de claves RSA.
+**Nota:** La configuración se lee desde el archivo `.env`. Los argumentos de línea de comandos tienen prioridad.
 
 ### 2. Conectar Cliente
 ```bash
@@ -102,12 +121,13 @@ python client.py
 
 **Opciones del cliente:**
 ```bash
-python client.py --host 127.0.0.1 --port 9000
+python client.py --host 127.0.0.1 --port 9000 --no-ssl
 ```
 
 **Parámetros:**
-- `--host`: IP del servidor (default: 127.0.0.1)
-- `--port`: Puerto del servidor (default: 9000)
+- `--host`: IP del servidor (default: desde .env o 127.0.0.1)
+- `--port`: Puerto del servidor (default: desde .env o 9000)
+- `--no-ssl`: Deshabilitar SSL/TLS
 
 **Nota:** El cliente genera automáticamente su par de claves RSA y establece la comunicación segura con el servidor.
 
@@ -127,9 +147,57 @@ python client.py
 
 ## 🔧 Configuración Avanzada
 
+### Variables de Entorno
+
+El proyecto usa variables de entorno para configuración. Crea un archivo `.env` basado en `.env.example`:
+
+```bash
+# Servidor
+SERVER_HOST=0.0.0.0
+SERVER_PORT=9000
+LOG_FILE=chat.log
+LOG_MAX_BYTES=5000000
+LOG_BACKUPS=3
+
+# Cliente
+CLIENT_HOST=127.0.0.1
+CLIENT_PORT=9000
+
+# SSL/TLS
+SSL_ENABLED=true
+SSL_CERT_FILE=certificates/server.crt
+SSL_KEY_FILE=certificates/server.key
+SSL_CA_FILE=certificates/ca.crt
+
+# Criptografía
+HMAC_SALT=tu_salt_secreto_aqui
+```
+
+**Importante:** 
+- Nunca commitees el archivo `.env` al repositorio
+- Cambia `HMAC_SALT` por un valor aleatorio seguro en producción
+- Para producción, usa certificados SSL de una CA válida
+
+### Configurar SSL/TLS
+
+**Para desarrollo (self-signed):**
+```bash
+python generate_ssl_cert.py
+```
+
+**Para producción:**
+- Usa certificados de Let's Encrypt u otra CA válida
+- Coloca los certificados en el directorio `certificates/`
+- Actualiza las rutas en `.env`
+
 ### Configurar Logging
 ```bash
-# Servidor con logs personalizados
+# Opción 1: Desde .env
+LOG_FILE=mi_chat.log
+LOG_MAX_BYTES=10000000
+LOG_BACKUPS=5
+
+# Opción 2: Desde línea de comandos
 python server.py --log-file mi_chat.log --max-bytes 10000000 --backups 5
 ```
 
@@ -185,24 +253,40 @@ python mostrar_cifrado.py
 - ✅ Rotación periódica de claves RSA (implementar en producción)
 - ✅ Almacenamiento seguro de claves privadas (si se persisten)
 
+### SSL/TLS (v5.0)
+- ✅ **Cifrado de transporte**: SSL/TLS protege la conexión TCP
+- ✅ **Certificados self-signed**: Para desarrollo y pruebas
+- ✅ **Soporte para CA válida**: Listo para certificados de producción
+- ✅ **Configurable**: SSL puede habilitarse/deshabilitarse desde .env
+- ✅ **Doble capa de seguridad**: SSL/TLS (transporte) + Cifrado híbrido (aplicación)
+
 ### Limitaciones Actuales
 - ⚠️ No hay autenticación de usuarios (solo cifrado)
 - ⚠️ No hay rotación automática de claves RSA
 - ⚠️ Claves RSA se generan en memoria (no se persisten)
+- ⚠️ Certificados SSL autofirmados solo para desarrollo (usar CA válida en producción)
+- ⚠️ Certificados self-signed requieren aceptación manual del cliente
 
 ## 📁 Estructura del Proyecto
 
 ```
 chat/
-├── server.py              # Servidor TCP asíncrono con cifrado híbrido (v3.0)
-├── client.py              # Cliente TCP asíncrono con cifrado híbrido (v3.0)
+├── server.py              # Servidor TCP/SSL asíncrono con cifrado híbrido (v5.0)
+├── client.py              # Cliente TCP/SSL asíncrono con cifrado híbrido (v5.0)
 ├── crypto_utils.py        # Utilidades criptográficas híbridas (RSA + AES)
+├── generate_ssl_cert.py  # Script para generar certificados SSL (v5.0)
 ├── mostrar_cifrado.py     # Script de demostración del cifrado
 ├── calcular_md5.py        # Script para calcular MD5 de archivos
 ├── requirements.txt       # Dependencias Python
+├── .env.example           # Ejemplo de variables de entorno (v5.0)
+├── .gitignore            # Archivos ignorados por git
 ├── README.md             # Este archivo
 ├── README.txt            # Historial detallado de cambios
 ├── CONTROL_CAMBIOS.txt   # Documento de control de cambios
+├── certificates/         # Directorio para certificados SSL (v5.0)
+│   ├── server.crt        # Certificado del servidor
+│   ├── server.key        # Clave privada del servidor
+│   └── ca.crt            # Certificado CA (self-signed)
 └── chat.log              # Logs del servidor (generado automáticamente)
 ```
 
@@ -223,7 +307,17 @@ chat/
 
 ## 🔄 Versiones
 
-### Versión 4.0 - Validación SHA256 en Intercambio (Actual)
+### Versión 5.0 - SSL/TLS y Variables de Entorno (Actual)
+- ✅ Implementación de SSL/TLS para cifrado de transporte
+- ✅ Variables de entorno reemplazan valores hardcodeados
+- ✅ Removido hardening (valores fijos) en favor de configuración flexible
+- ✅ Script generate_ssl_cert.py para certificados SSL self-signed
+- ✅ Soporte para certificados de CA válida en producción
+- ✅ Configuración centralizada en archivo .env
+- ✅ HMAC_SALT configurable desde variables de entorno
+- ✅ Doble capa de seguridad: SSL/TLS (transporte) + Cifrado híbrido (aplicación)
+
+### Versión 4.0 - Validación SHA256 en Intercambio
 - ✅ Validación obligatoria de SHA256 en cada mensaje
 - ✅ Cliente envía hash SHA256 junto con mensaje cifrado
 - ✅ Servidor valida hash SHA256 antes de aceptar mensaje
@@ -267,15 +361,19 @@ chat/
 
 ## 📝 Control de Versiones
 
-**Última actualización: 2025-11-19 (Versión 4.0)**
+**Última actualización: 2025-11-19 (Versión 5.0)**
 
 | Archivo           | MD5                                   | Fecha de cambio | Versión |
 |-------------------|---------------------------------------|-----------------|---------|
+| server.py         | `348ebfd6dbfcf67f0deb930d6a3486ab`    | 2025-11-19      | 5.0     |
 | server.py         | `ae21a882e1a6bac3ed008c28331295fd`    | 2025-11-19      | 4.0     |
 | server.py         | `eb818069eeb98ff97b3da10d21f58b2f`    | 2025-11-19      | 3.0     |
+| client.py         | `b07f5e3d3ccda837997644139c45c44b`    | 2025-11-19      | 5.0     |
 | client.py         | `27e5385e75efcf34b63e2509e6448d2a`    | 2025-11-19      | 4.0     |
 | client.py         | `ef87c47acbe985866e2666b94b36fc37`    | 2025-11-19      | 3.0     |
+| crypto_utils.py   | `2fe800977b7e5b67185cf7a5c145f31c`    | 2025-11-19      | 5.0     |
 | crypto_utils.py   | `6c26258132d8e030857d73d651d156a1`    | 2025-11-19      | 3.0     |
+| generate_ssl_cert.py | `6e5d4821aabccd97433a0011b412dbe1`    | 2025-11-19      | 5.0     |
 | mostrar_cifrado.py| `c6ea27b39da48f363cfb2102994f33fd`    | 2025-10-22      | 1.0     |
 | calcular_md5.py   | `1832f95ca60a02101473cee1e5434ba9`    | 2025-11-19      | 2.0     |
 | README.md         | (verificar con calcular_md5.py)       | 2025-11-19      | 4.0     |

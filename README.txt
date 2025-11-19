@@ -3,8 +3,90 @@
 ================================================================================
 
 Este documento registra todos los cambios realizados en el proyecto de chat,
-incluyendo la migración a arquitectura asíncrona, cifrado híbrido y validación
-SHA256 en intercambio de mensajes.
+incluyendo la migración a arquitectura asíncrona, cifrado híbrido, validación
+SHA256, y la implementación de SSL/TLS con variables de entorno.
+
+================================================================================
+VERSIÓN 5.0 - SSL/TLS y Variables de Entorno
+Fecha: 2025-11-19
+================================================================================
+
+DESCRIPCIÓN GENERAL:
+Se implementó SSL/TLS para cifrado de transporte y se removió el hardening
+(valores hardcodeados) en favor de variables de entorno. El sistema ahora
+usa configuración flexible desde archivo .env, permitiendo mayor adaptabilidad
+y mejores prácticas de seguridad.
+
+CAMBIOS PRINCIPALES:
+
+1. IMPLEMENTACIÓN DE SSL/TLS
+   - Agregado: Soporte para SSL/TLS en conexiones TCP
+   - Agregado: Script generate_ssl_cert.py para certificados self-signed
+   - Agregado: Soporte para certificados de CA válida en producción
+   - Modificado: server.py y client.py ahora soportan SSL/TLS
+   - Mejoras:
+     * Cifrado de transporte adicional (SSL/TLS)
+     * Doble capa de seguridad: SSL/TLS + Cifrado híbrido
+     * Configurable desde variables de entorno
+     * Puede deshabilitarse con --no-ssl
+
+2. VARIABLES DE ENTORNO
+   - Removido: Valores hardcodeados (hardening)
+   - Agregado: python-dotenv para gestión de variables de entorno
+   - Agregado: Archivo .env.example como plantilla
+   - Agregado: .gitignore para proteger archivo .env
+   - Modificado: crypto_utils.py usa HMAC_SALT desde .env
+   - Modificado: server.py lee configuración desde .env
+   - Modificado: client.py lee configuración desde .env
+   - Mejoras:
+     * Configuración centralizada en .env
+     * Sin valores hardcodeados
+     * Fácil adaptación a diferentes entornos
+     * Mejores prácticas de seguridad
+
+3. ARCHIVOS NUEVOS
+   - generate_ssl_cert.py: Script para generar certificados SSL self-signed
+   - .env.example: Plantilla de variables de entorno
+   - .gitignore: Protección de archivos sensibles
+
+BENEFICIOS DE SSL/TLS Y VARIABLES DE ENTORNO:
+
+1. Seguridad:
+   - Cifrado de transporte adicional con SSL/TLS
+   - Doble capa: SSL/TLS (transporte) + Cifrado híbrido (aplicación)
+   - Sin valores hardcodeados que puedan comprometerse
+   - Configuración flexible y segura
+
+2. Flexibilidad:
+   - Fácil adaptación a diferentes entornos (desarrollo, producción)
+   - Configuración sin modificar código
+   - Soporte para certificados de CA válida
+   - SSL puede habilitarse/deshabilitarse según necesidad
+
+3. Mejores Prácticas:
+   - Variables de entorno para configuración sensible
+   - .env no se commitea al repositorio
+   - Separación de configuración y código
+   - Preparado para despliegue en producción
+
+SEGURIDAD MEJORADA:
+
+- SSL/TLS: Cifrado de transporte adicional
+- Variables de entorno: Sin valores hardcodeados
+- HMAC_SALT configurable: Mayor flexibilidad y seguridad
+- Certificados: Soporte para self-signed (desarrollo) y CA válida (producción)
+
+MD5 DE ARCHIVOS - VERSIÓN 5.0 (2025-11-19):
+
+| Archivo | MD5 | Fecha de cambio |
+|---------|-----|-----------------|
+| server.py | `348ebfd6dbfcf67f0deb930d6a3486ab` | 2025-11-19 |
+| client.py | `b07f5e3d3ccda837997644139c45c44b` | 2025-11-19 |
+| crypto_utils.py | `2fe800977b7e5b67185cf7a5c145f31c` | 2025-11-19 |
+| generate_ssl_cert.py | `6e5d4821aabccd97433a0011b412dbe1` | 2025-11-19 |
+| requirements.txt | (verificar con calcular_md5.py) | 2025-11-19 |
+| mostrar_cifrado.py | `c6ea27b39da48f363cfb2102994f33fd` | 2025-10-22 |
+| calcular_md5.py | `1832f95ca60a02101473cee1e5434ba9` | 2025-11-19 |
 
 ================================================================================
 VERSIÓN 4.0 - Validación SHA256 en Intercambio de Mensajes

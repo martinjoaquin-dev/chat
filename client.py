@@ -1,14 +1,27 @@
-# client.py - Versión Asíncrona con Cifrado Híbrido
+# client.py - Versión Asíncrona con Cifrado Híbrido y SSL/TLS
 """
-Cliente de chat TCP asíncrono con cifrado híbrido (RSA + AES).
+Cliente de chat TCP asíncrono con cifrado híbrido (RSA + AES) y SSL/TLS.
 Utiliza asyncio para comunicación no bloqueante con el servidor.
+Variables de entorno reemplazan valores hardcodeados.
 """
 
 import asyncio
 import struct
 import sys
 import argparse
+import os
+import ssl
 from crypto_utils import HybridCrypto
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
+
+# Configuración desde variables de entorno
+CLIENT_HOST = os.getenv('CLIENT_HOST', '127.0.0.1')
+CLIENT_PORT = int(os.getenv('CLIENT_PORT', '9000'))
+SSL_ENABLED = os.getenv('SSL_ENABLED', 'true').lower() == 'true'
+SSL_CA_FILE = os.getenv('SSL_CA_FILE', 'certificates/ca.crt')
 
 async def exchange_keys(reader, writer, client_crypto):
     """
@@ -91,18 +104,52 @@ async def read_input():
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, sys.stdin.readline)
 
-async def main_client(host, port):
+def create_ssl_context():
+    """
+    Crea contexto SSL/TLS para el cliente.
+    
+    Returns:
+        ssl.SSLContext o None si SSL está deshabilitado
+    """
+    if not SSL_ENABLED:
+        return None
+    
+    try:
+        context = ssl.create_default_context()
+        # Para desarrollo con certificados self-signed
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        
+        # Si existe archivo CA, cargarlo
+        if os.path.exists(SSL_CA_FILE):
+            context.load_verify_locations(SSL_CA_FILE)
+        
+        return context
+    except Exception as e:
+        print(f'Error al crear contexto SSL: {e}')
+        print('Continuando sin SSL...')
+        return None
+
+async def main_client(host=None, port=None, ssl_context=None):
     """
     Función principal del cliente asíncrono.
     
     Args:
         host: Dirección IP del servidor
         port: Puerto del servidor
+        ssl_context: Contexto SSL/TLS (opcional)
     """
+    host = host or CLIENT_HOST
+    port = port or CLIENT_PORT
+    
     try:
-        reader, writer = await asyncio.open_connection(host, port)
+        reader, writer = await asyncio.open_connection(host, port, ssl=ssl_context)
         
-        print(f'Conectado a {host}:{port}')
+        # Verificar si la conexión usa SSL
+        ssl_info = writer.get_extra_info('sslcontext')
+        protocol = "SSL/TLS" if ssl_info else "TCP"
+        
+        print(f'Conectado a {host}:{port} ({protocol})')
         
         # Crear instancia de cifrado híbrido
         crypto = HybridCrypto()
@@ -115,6 +162,8 @@ async def main_client(host, port):
         
         print('Claves intercambiadas exitosamente')
         print('Cifrado hibrido RSA + AES-256-GCM + HMAC + SHA256 activado')
+        if ssl_info:
+            print('SSL/TLS activado: Conexion de transporte cifrada')
         print('Modo asincrono: Comunicacion no bloqueante')
         print('Escribe mensajes y presiona Enter (Ctrl+C para salir)')
         print('-' * 50)
@@ -147,19 +196,28 @@ async def main_client(host, port):
     except ConnectionRefusedError:
         print(f'No se pudo conectar a {host}:{port}')
         print('¿Esta el servidor corriendo? Verifica con: python server.py')
+    except ssl.SSLError as e:
+        print(f'Error SSL: {e}')
+        print('Verifica que los certificados SSL esten generados: python generate_ssl_cert.py')
     except Exception as e:
         print(f'Error: {e}')
 
 def main():
     """Punto de entrada principal."""
-    parser = argparse.ArgumentParser(description='Cliente de chat TCP asíncrono con cifrado híbrido')
-    parser.add_argument('--host', default='127.0.0.1', help='IP del servidor (default: 127.0.0.1)')
-    parser.add_argument('--port', type=int, default=9000, help='Puerto del servidor (default: 9000)')
+    parser = argparse.ArgumentParser(description='Cliente de chat TCP asíncrono con cifrado híbrido y SSL/TLS')
+    parser.add_argument('--host', default=None, help=f'IP del servidor (default: {CLIENT_HOST} desde .env)')
+    parser.add_argument('--port', type=int, default=None, help=f'Puerto del servidor (default: {CLIENT_PORT} desde .env)')
+    parser.add_argument('--no-ssl', action='store_true', help='Deshabilitar SSL/TLS (usar TCP sin cifrado de transporte)')
     
     args = parser.parse_args()
     
+    # Crear contexto SSL si está habilitado
+    ssl_context = None
+    if not args.no_ssl and SSL_ENABLED:
+        ssl_context = create_ssl_context()
+    
     try:
-        asyncio.run(main_client(args.host, args.port))
+        asyncio.run(main_client(args.host, args.port, ssl_context))
     except KeyboardInterrupt:
         print('\nCliente cerrado')
 

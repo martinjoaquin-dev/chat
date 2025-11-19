@@ -1,0 +1,32 @@
+# Variables de entorno
+.env
+
+# Certificados SSL
+certificates/
+*.crt
+*.key
+*.pem
+
+# Logs
+*.log
+*.log.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+

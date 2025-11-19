@@ -1,7 +1,8 @@
-# server.py - Versión Asíncrona con Cifrado Híbrido
+# server.py - Versión Asíncrona con Cifrado Híbrido y SSL/TLS
 """
-Servidor de chat TCP asíncrono con cifrado híbrido (RSA + AES).
+Servidor de chat TCP asíncrono con cifrado híbrido (RSA + AES) y SSL/TLS.
 Utiliza asyncio para manejar múltiples clientes de forma eficiente.
+Variables de entorno reemplazan valores hardcodeados.
 """
 
 import asyncio
@@ -9,17 +10,35 @@ import logging
 from logging.handlers import RotatingFileHandler
 import struct
 import argparse
+import os
+import ssl
 from datetime import datetime
 from crypto_utils import HybridCrypto
+from dotenv import load_dotenv
 
-# Configuración global
-HOST, PORT = '0.0.0.0', 9000
+# Cargar variables de entorno
+load_dotenv()
+
+# Configuración desde variables de entorno
+HOST = os.getenv('SERVER_HOST', '0.0.0.0')
+PORT = int(os.getenv('SERVER_PORT', '9000'))
+LOG_FILE = os.getenv('LOG_FILE', 'chat.log')
+LOG_MAX_BYTES = int(os.getenv('LOG_MAX_BYTES', '5000000'))
+LOG_BACKUPS = int(os.getenv('LOG_BACKUPS', '3'))
+SSL_ENABLED = os.getenv('SSL_ENABLED', 'true').lower() == 'true'
+SSL_CERT_FILE = os.getenv('SSL_CERT_FILE', 'certificates/server.crt')
+SSL_KEY_FILE = os.getenv('SSL_KEY_FILE', 'certificates/server.key')
+
 connected_clients = set()
 log = None
 
-def setup_logger(log_file='chat.log', max_bytes=5_000_000, backups=3):
+def setup_logger(log_file=None, max_bytes=None, backups=None):
     """Configura el logger con rotación de archivos."""
     global log
+    log_file = log_file or LOG_FILE
+    max_bytes = max_bytes or LOG_MAX_BYTES
+    backups = backups or LOG_BACKUPS
+    
     log = logging.getLogger('chat')
     log.setLevel(logging.INFO)
     
@@ -35,6 +54,32 @@ def setup_logger(log_file='chat.log', max_bytes=5_000_000, backups=3):
     log.addHandler(console_handler)
     
     return log
+
+def create_ssl_context():
+    """
+    Crea contexto SSL/TLS para el servidor.
+    
+    Returns:
+        ssl.SSLContext o None si SSL está deshabilitado
+    """
+    if not SSL_ENABLED:
+        return None
+    
+    try:
+        context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        context.load_cert_chain(SSL_CERT_FILE, SSL_KEY_FILE)
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE  # Para desarrollo con self-signed
+        return context
+    except FileNotFoundError as e:
+        print(f'ADVERTENCIA: Archivos SSL no encontrados: {e}')
+        print('Ejecuta: python generate_ssl_cert.py para generar certificados')
+        print('Continuando sin SSL...')
+        return None
+    except Exception as e:
+        print(f'Error al cargar certificados SSL: {e}')
+        print('Continuando sin SSL...')
+        return None
 
 async def exchange_keys(reader, writer, server_crypto):
     """
@@ -84,7 +129,11 @@ async def handle_client(reader, writer):
     client_id = f'{addr[0]}:{addr[1]}'
     connected_clients.add(writer)
     
-    print(f'Cliente conectado: {client_id}')
+    # Verificar si la conexión usa SSL
+    ssl_context = writer.get_extra_info('sslcontext')
+    ssl_info = "SSL/TLS" if ssl_context else "TCP"
+    
+    print(f'Cliente conectado: {client_id} ({ssl_info})')
     
     # Crear instancia de cifrado híbrido para este cliente
     crypto = HybridCrypto()
@@ -171,7 +220,7 @@ async def handle_client(reader, writer):
         await writer.wait_closed()
         print(f'Cliente desconectado: {client_id}')
 
-async def main_server(host, port, log_file, max_bytes, backups):
+async def main_server(host=None, port=None, log_file=None, max_bytes=None, backups=None, ssl_context=None):
     """
     Función principal del servidor asíncrono.
     
@@ -181,18 +230,28 @@ async def main_server(host, port, log_file, max_bytes, backups):
         log_file: Nombre del archivo de log
         max_bytes: Tamaño máximo del archivo de log
         backups: Número de archivos de respaldo
+        ssl_context: Contexto SSL/TLS (opcional)
     """
+    host = host or HOST
+    port = port or PORT
+    
     setup_logger(log_file, max_bytes, backups)
     
     server = await asyncio.start_server(
         handle_client,
-        host, port
+        host, port,
+        ssl=ssl_context
     )
     
     addr = server.sockets[0].getsockname()
-    print(f'Servidor asincrono escuchando en {addr[0]}:{addr[1]}')
+    protocol = "SSL/TLS" if ssl_context else "TCP"
+    print(f'Servidor asincrono escuchando en {addr[0]}:{addr[1]} ({protocol})')
     print(f'Cifrado hibrido RSA + AES-256-GCM + HMAC + SHA256 activado')
-    print(f'Logs guardandose en: {log_file}')
+    if ssl_context:
+        print(f'SSL/TLS activado: {SSL_CERT_FILE}')
+    else:
+        print(f'SSL/TLS desactivado (conexion TCP sin cifrado de transporte)')
+    print(f'Logs guardandose en: {log_file or LOG_FILE}')
     print(f'Modo asincrono: Manejo eficiente de multiples clientes')
     print('Presiona Ctrl+C para detener el servidor')
     
@@ -208,14 +267,20 @@ async def main_server(host, port, log_file, max_bytes, backups):
 
 def main():
     """Punto de entrada principal."""
-    parser = argparse.ArgumentParser(description='Servidor de chat TCP asíncrono con cifrado híbrido')
-    parser.add_argument('--host', default='0.0.0.0', help='IP de escucha (default: 0.0.0.0)')
-    parser.add_argument('--port', type=int, default=9000, help='Puerto de escucha (default: 9000)')
-    parser.add_argument('--log-file', default='chat.log', help='Archivo de log (default: chat.log)')
-    parser.add_argument('--max-bytes', type=int, default=5_000_000, help='Tamaño máximo del archivo de log (default: 5MB)')
-    parser.add_argument('--backups', type=int, default=3, help='Número de archivos de respaldo (default: 3)')
+    parser = argparse.ArgumentParser(description='Servidor de chat TCP asíncrono con cifrado híbrido y SSL/TLS')
+    parser.add_argument('--host', default=None, help=f'IP de escucha (default: {HOST} desde .env)')
+    parser.add_argument('--port', type=int, default=None, help=f'Puerto de escucha (default: {PORT} desde .env)')
+    parser.add_argument('--log-file', default=None, help=f'Archivo de log (default: {LOG_FILE} desde .env)')
+    parser.add_argument('--max-bytes', type=int, default=None, help=f'Tamaño máximo del archivo de log (default: {LOG_MAX_BYTES} desde .env)')
+    parser.add_argument('--backups', type=int, default=None, help=f'Número de archivos de respaldo (default: {LOG_BACKUPS} desde .env)')
+    parser.add_argument('--no-ssl', action='store_true', help='Deshabilitar SSL/TLS (usar TCP sin cifrado de transporte)')
     
     args = parser.parse_args()
+    
+    # Crear contexto SSL si está habilitado
+    ssl_context = None
+    if not args.no_ssl and SSL_ENABLED:
+        ssl_context = create_ssl_context()
     
     try:
         asyncio.run(main_server(
@@ -223,7 +288,8 @@ def main():
             args.port, 
             args.log_file, 
             args.max_bytes, 
-            args.backups
+            args.backups,
+            ssl_context
         ))
     except KeyboardInterrupt:
         print('\nServidor detenido')

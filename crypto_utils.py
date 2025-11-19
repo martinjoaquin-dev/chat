@@ -12,6 +12,10 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.backends import default_backend
+from dotenv import load_dotenv
+
+# Cargar variables de entorno
+load_dotenv()
 
 
 class HybridCrypto:
@@ -108,11 +112,19 @@ class HybridCrypto:
     def _derive_hmac_key(self) -> bytes:
         """
         Deriva una clave separada para HMAC desde la clave AES.
+        Usa variable de entorno HMAC_SALT en lugar de valor hardcodeado.
         
         Returns:
             bytes: Clave HMAC de 32 bytes
         """
-        return hashlib.sha256(self.aes_key + b'hmac_salt').digest()
+        # Obtener salt desde variable de entorno, con fallback seguro
+        hmac_salt = os.getenv('HMAC_SALT', 'default_hmac_salt_change_in_production')
+        if hmac_salt == 'default_hmac_salt_change_in_production':
+            import warnings
+            warnings.warn("HMAC_SALT no configurado en .env, usando valor por defecto. Configura en producción.", UserWarning)
+        
+        salt_bytes = hmac_salt.encode('utf-8')
+        return hashlib.sha256(self.aes_key + salt_bytes).digest()
     
     def encrypt_message_payload(self, plaintext: str) -> bytes:
         """

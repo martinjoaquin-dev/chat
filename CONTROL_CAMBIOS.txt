@@ -3,10 +3,10 @@
                     Documento para Presentación con Cliente
 ================================================================================
 
-PROYECTO: Chat TCP con Cifrado Híbrido - Versión Asíncrona
+PROYECTO: Chat TCP/SSL con Cifrado Híbrido - Versión Asíncrona
 FECHA INICIO: 2025-10-08
 ÚLTIMA ACTUALIZACIÓN: 2025-11-19
-VERSIÓN ACTUAL: 4.0
+VERSIÓN ACTUAL: 5.0
 
 ================================================================================
 RESUMEN EJECUTIVO
@@ -16,17 +16,62 @@ Este proyecto implementa un sistema de chat cliente-servidor con cifrado
 híbrido (RSA + AES) de grado empresarial, migrado a arquitectura asíncrona
 para máxima escalabilidad y rendimiento. El sistema utiliza RSA-2048 para
 intercambio seguro de claves y AES-256-GCM con HMAC-SHA256 para cifrado rápido
-de mensajes. La versión 4.0 agrega validación obligatoria de SHA256 en cada
-mensaje, descartando automáticamente mensajes con integridad comprometida.
+de mensajes. La versión 5.0 agrega SSL/TLS para cifrado de transporte y
+variables de entorno para configuración flexible, removiendo valores hardcodeados
+y siguiendo mejores prácticas de seguridad.
 
 ================================================================================
 HISTORIAL DE VERSIONES
 ================================================================================
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ VERSIÓN 4.0 - Validación SHA256 en Intercambio                              │
+│ VERSIÓN 5.0 - SSL/TLS y Variables de Entorno                                │
 │ Fecha: 2025-11-19                                                           │
 │ Estado: COMPLETADO                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CAMBIOS IMPLEMENTADOS:
+
+1. Implementación de SSL/TLS
+   ✓ SSL/TLS para cifrado de transporte adicional
+   ✓ Script generate_ssl_cert.py para certificados self-signed
+   ✓ Soporte para certificados de CA válida en producción
+   ✓ Configurable desde variables de entorno
+   ✓ Doble capa de seguridad: SSL/TLS + Cifrado híbrido
+
+2. Remoción de Hardening
+   ✓ Valores hardcodeados removidos
+   ✓ Variables de entorno reemplazan configuración fija
+   ✓ HMAC_SALT ahora configurable desde .env
+   ✓ Configuración centralizada en archivo .env
+
+3. Mejoras de Configuración
+   ✓ python-dotenv para gestión de variables de entorno
+   ✓ Archivo .env.example como plantilla
+   ✓ .gitignore para proteger archivos sensibles
+   ✓ Configuración flexible sin modificar código
+
+BENEFICIOS OBTENIDOS:
+- Seguridad superior: SSL/TLS + Cifrado híbrido (doble capa)
+- Flexibilidad: Configuración desde variables de entorno
+- Mejores prácticas: Sin valores hardcodeados
+- Producción-ready: Soporte para certificados de CA válida
+
+ARCHIVOS MODIFICADOS:
+- server.py (MD5: 348ebfd6dbfcf67f0deb930d6a3486ab)
+- client.py (MD5: b07f5e3d3ccda837997644139c45c44b)
+- crypto_utils.py (MD5: 2fe800977b7e5b67185cf7a5c145f31c)
+- requirements.txt (MD5: verificar con calcular_md5.py)
+
+ARCHIVOS NUEVOS:
+- generate_ssl_cert.py (MD5: 6e5d4821aabccd97433a0011b412dbe1)
+- .env.example
+- .gitignore
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VERSIÓN 4.0 - Validación SHA256 en Intercambio                              │
+│ Fecha: 2025-11-19                                                           │
+│ Estado: COMPLETADO (base para v5.0)                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 CAMBIOS IMPLEMENTADOS:
@@ -165,12 +210,13 @@ CONTROL DE INTEGRIDAD - MD5 DE ARCHIVOS
 ┌──────────────────────────────┬──────────────────────────────────┬──────────────┐
 │ Archivo                      │ MD5                              │ Fecha        │
 ├──────────────────────────────┼──────────────────────────────────┼──────────────┤
-│ server.py                    │ ae21a882e1a6bac3ed008c28331295fd │ 2025-11-19   │
-│ client.py                    │ 27e5385e75efcf34b63e2509e6448d2a │ 2025-11-19   │
-│ crypto_utils.py              │ 6c26258132d8e030857d73d651d156a1 │ 2025-11-19   │
+│ server.py                    │ 348ebfd6dbfcf67f0deb930d6a3486ab │ 2025-11-19   │
+│ client.py                    │ b07f5e3d3ccda837997644139c45c44b │ 2025-11-19   │
+│ crypto_utils.py              │ 2fe800977b7e5b67185cf7a5c145f31c │ 2025-11-19   │
+│ generate_ssl_cert.py         │ 6e5d4821aabccd97433a0011b412dbe1 │ 2025-11-19   │
 │ mostrar_cifrado.py           │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
 │ calcular_md5.py              │ 1832f95ca60a02101473cee1e5434ba9 │ 2025-11-19   │
-│ README.md                    │ (verificar con calcular_md5.py)  │ 2025-01-XX   │
+│ README.md                    │ (verificar con calcular_md5.py)  │ 2025-11-19   │
 └──────────────────────────────┴──────────────────────────────────┴──────────────┘
 
 NOTA: Para verificar integridad de archivos, ejecutar:
@@ -198,6 +244,11 @@ MEJORAS DE SEGURIDAD IMPLEMENTADAS
    - Logs incluyen hash SHA256 para auditoría
 
 4. PROTOCOLO DE CIFRADO
+   Capa de Transporte (v5.0):
+   - SSL/TLS: Cifrado de transporte opcional
+   - Certificados self-signed para desarrollo
+   - Soporte para certificados de CA válida en producción
+   
    Fase 1 - Intercambio de claves:
    - Cliente y servidor intercambian claves públicas RSA
    - Cliente genera clave AES y la cifra con RSA del servidor
@@ -213,6 +264,19 @@ MEJORAS DE SEGURIDAD IMPLEMENTADAS
    - Servidor extrae hash SHA256 recibido
    - Servidor descifra mensaje y calcula hash SHA256
    - Servidor compara hashes: si coinciden acepta, si no descarta
+
+5. VARIABLES DE ENTORNO (v5.0)
+   - Configuración centralizada en archivo .env
+   - Sin valores hardcodeados en el código
+   - HMAC_SALT configurable desde .env
+   - SSL/TLS configurable desde .env
+   - Fácil adaptación a diferentes entornos
+   
+   Fase 0 - Cifrado de Transporte SSL/TLS (v5.0):
+   - Conexión TCP establecida
+   - Handshake SSL/TLS (si está habilitado)
+   - Canal de transporte cifrado con SSL/TLS
+   - Sobre este canal se establece el cifrado híbrido (RSA + AES)
 
 ================================================================================
 MÉTRICAS DE RENDIMIENTO
