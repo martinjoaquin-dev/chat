@@ -7,6 +7,7 @@ Implementa cifrado AES-256-GCM con HMAC para autenticación adicional.
 import os
 import struct
 import hmac
+import hashlib
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
@@ -149,6 +150,20 @@ class SymmetricCrypto:
             backend=default_backend()
         )
         return kdf.derive(self.password)
+    
+    def hash_message(self, message: str) -> str:
+        """
+        Calcula el hash SHA256 de un mensaje para verificación de integridad.
+        
+        Args:
+            message: Mensaje de texto a hashear
+            
+        Returns:
+            str: Hash SHA256 en formato hexadecimal
+        """
+        message_bytes = message.encode('utf-8')
+        hash_obj = hashlib.sha256(message_bytes)
+        return hash_obj.hexdigest()
 
 
 def test_crypto():

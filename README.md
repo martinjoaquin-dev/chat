@@ -1,25 +1,28 @@
-# 🔐 Chat TCP con Cifrado Simétrico
+# 🔐 Chat TCP Asíncrono con Cifrado Simétrico
 
-Un sistema de chat cliente-servidor TCP con cifrado simétrico robusto implementado en Python.
+Un sistema de chat cliente-servidor TCP **asíncrono** con cifrado simétrico robusto implementado en Python. Utiliza `asyncio` para manejo eficiente de múltiples conexiones simultáneas.
 
 ## 🚀 Características
 
 ### Seguridad
 - **Cifrado AES-256-GCM**: Cifrado autenticado de grado militar
-- **HMAC-SHA256**: Verificación adicional de integridad
+- **HMAC-SHA256**: Verificación adicional de integridad del payload cifrado
+- **SHA256 Hash**: Verificación de integridad del mensaje descifrado (nuevo en v2.0)
 - **PBKDF2**: Derivación segura de claves desde contraseñas
 - **Protección contra tampering**: Detección automática de mensajes alterados
 - **IV aleatorio**: Cada mensaje usa un vector de inicialización único
 
 ### Funcionalidades
-- ✅ Comunicación TCP en tiempo real
+- ✅ **Arquitectura asíncrona** con asyncio (v2.0)
+- ✅ Comunicación TCP en tiempo real no bloqueante
 - ✅ Cifrado/descifrado transparente
 - ✅ **Visualización de datos cifrados** en tiempo real
 - ✅ Logging rotativo con archivos de respaldo
 - ✅ Manejo robusto de errores
 - ✅ Interfaz de línea de comandos configurable
-- ✅ Soporte para múltiples clientes simultáneos
+- ✅ Soporte para **miles de clientes simultáneos** (mejorado en v2.0)
 - ✅ **Scripts de demostración** del cifrado
+- ✅ Hash SHA256 de mensajes para auditoría
 
 ## 🏗️ Arquitectura
 
@@ -34,10 +37,11 @@ Mensaje cifrado:
 ```
 
 ### Flujo de Comunicación
-1. **Cliente** → Cifra mensaje con AES-256-GCM + HMAC
+1. **Cliente** → Cifra mensaje con AES-256-GCM + HMAC, calcula hash SHA256
 2. **Red** → Transmisión segura de datos cifrados
 3. **Servidor** → Verifica HMAC y descifra con AES-256-GCM
-4. **Log** → Almacena mensaje descifrado en archivo
+4. **Servidor** → Calcula y verifica hash SHA256 del mensaje descifrado
+5. **Log** → Almacena mensaje descifrado con hash SHA256 para auditoría
 
 ## 📦 Instalación
 
@@ -145,7 +149,8 @@ python mostrar_cifrado.py
 
 ### Algoritmos Utilizados
 - **AES-256-GCM**: Cifrado simétrico de 256 bits con autenticación
-- **HMAC-SHA256**: Verificación de integridad con clave secreta
+- **HMAC-SHA256**: Verificación de integridad del payload cifrado con clave secreta
+- **SHA256**: Hash de mensajes para verificación adicional de integridad (v2.0)
 - **PBKDF2**: Derivación de claves con 100,000 iteraciones
 - **Salt fijo**: Para desarrollo (cambiar en producción)
 
@@ -166,12 +171,15 @@ python mostrar_cifrado.py
 
 ```
 chat/
-├── client.py              # Cliente TCP con cifrado
-├── server.py              # Servidor TCP con descifrado
-├── crypto_utils.py        # Utilidades criptográficas
+├── server.py              # Servidor TCP asíncrono con descifrado (v2.0)
+├── client.py              # Cliente TCP asíncrono con cifrado (v2.0)
+├── crypto_utils.py        # Utilidades criptográficas (con SHA256)
 ├── mostrar_cifrado.py     # Script de demostración del cifrado
+├── calcular_md5.py        # Script para calcular MD5 de archivos (v2.0)
 ├── requirements.txt       # Dependencias Python
 ├── README.md             # Este archivo
+├── README.txt            # Historial detallado de cambios (v2.0)
+├── CONTROL_CAMBIOS.txt   # Documento de control de cambios (v2.0)
 └── chat.log              # Logs del servidor (generado automáticamente)
 ```
 
@@ -192,16 +200,24 @@ chat/
 
 ## 🔄 Versiones
 
-### Rama Actual: `feature/symmetric-crypto`
+### Versión 2.0 - Arquitectura Asíncrona (Actual)
+- ✅ Migración completa a asyncio
+- ✅ Servidor y cliente asíncronos
+- ✅ Hash SHA256 de mensajes agregado
+- ✅ Mejora significativa en escalabilidad
+- ✅ Soporte para miles de conexiones simultáneas
+- ✅ Mejor eficiencia de recursos
+
+### Versión 1.0 - Versión Síncrona (Obsoleta)
 - ✅ Cifrado simétrico AES-256-GCM + HMAC
-- ✅ Cliente y servidor modificados
+- ✅ Cliente y servidor síncronos con threading
 - ✅ Utilidades criptográficas completas
 
 ### Próximas Versiones
-- 🔄 Rama `feature/asymmetric-crypto`: Cifrado asimétrico con RSA/ECDSA
 - 🔄 Autenticación de usuarios
 - 🔄 Rotación automática de claves
 - 🔄 Interfaz gráfica
+- 🔄 Cifrado asimétrico opcional (RSA/ECDSA)
 
 ## 📚 Referencias Técnicas
 
@@ -209,6 +225,25 @@ chat/
 - [HMAC Specification](https://tools.ietf.org/html/rfc2104)
 - [PBKDF2 Specification](https://tools.ietf.org/html/rfc2898)
 - [Cryptography Library](https://cryptography.io/)
+
+## 📝 Control de Versiones
+
+**Última actualización: 2025-11-19 (Versión 2.0)**
+
+| Archivo           | MD5                                   | Fecha de cambio | Versión |
+|-------------------|---------------------------------------|-----------------|---------|
+| server.py         | `8e6483ab0156066a822851036bed0f91`    | 2025-11-19      | 2.0     |
+| client.py         | `715e500ff50413e2181027b877657fbc`    | 2025-11-19      | 2.0     |
+| crypto_utils.py   | `b552d4565126f25cfaeb87ff8e9bfa6a`    | 2025-11-19      | 2.0     |
+| mostrar_cifrado.py| `c6ea27b39da48f363cfb2102994f33fd`    | 2025-10-22      | 1.0     |
+| calcular_md5.py   | `1832f95ca60a02101473cee1e5434ba9`    | 2025-11-19      | 2.0     |
+| README.md         | (verificar con calcular_md5.py)      | 2025-11-19      | 2.0     |
+
+**Nota:** Para calcular MD5 de archivos actualizados, ejecutar: `python calcular_md5.py`
+
+**Documentación adicional:**
+- `README.txt`: Historial detallado de cambios
+- `CONTROL_CAMBIOS.txt`: Documento para presentación con cliente
 
 ## 👥 Contribuciones
 

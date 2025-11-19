@@ -1,22 +1,32 @@
-# server.py
+# server.py - Versión Asíncrona
+"""
+Servidor de chat TCP asíncrono con cifrado simétrico.
+Utiliza asyncio para manejar múltiples clientes de forma eficiente.
+"""
+
+import asyncio
 import logging
 from logging.handlers import RotatingFileHandler
-import queue
-import socket
 import struct
-import threading
 import argparse
+from datetime import datetime
 from crypto_utils import SymmetricCrypto
 
+# Configuración global
 HOST, PORT = '0.0.0.0', 9000
-msg_queue = queue.Queue()
-stop_event = threading.Event()
+connected_clients = set()
+log = None
 
-def logger():
+def setup_logger(log_file='chat.log', max_bytes=5_000_000, backups=3):
+    """Configura el logger con rotación de archivos."""
+    global log
     log = logging.getLogger('chat')
     log.setLevel(logging.INFO)
     
-    file_handler = RotatingFileHandler('chat.log', maxBytes=5_000_000, backupCount=3)
+    # Limpiar handlers existentes
+    log.handlers.clear()
+    
+    file_handler = RotatingFileHandler(log_file, maxBytes=max_bytes, backupCount=backups)
     file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
     log.addHandler(file_handler)
     
@@ -24,56 +34,110 @@ def logger():
     console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
     log.addHandler(console_handler)
     
-    while not stop_event.is_set() or not msg_queue.empty():
-        try:
-            client_id, text = msg_queue.get(timeout=1)
-            log.info('%s | %s', client_id, text)
-        except queue.Empty:
-            pass
+    return log
 
-class ClientHandler(threading.Thread):
-    def __init__(self, conn, addr, crypto):
-        super().__init__(daemon=True)
-        self.conn, self.addr = conn, addr
-        self.crypto = crypto
-
-    def run(self):
-        with self.conn:
-            client_id = f'{self.addr[0]}:{self.addr[1]}'
-            print(f'Cliente conectado: {client_id}')
-            while not stop_event.is_set():
+async def handle_client(reader, writer, crypto):
+    """
+    Maneja la comunicación con un cliente conectado.
+    
+    Args:
+        reader: StreamReader para leer datos del cliente
+        writer: StreamWriter para escribir datos al cliente
+        crypto: Instancia de SymmetricCrypto para descifrar mensajes
+    """
+    addr = writer.get_extra_info('peername')
+    client_id = f'{addr[0]}:{addr[1]}'
+    connected_clients.add(writer)
+    
+    print(f'✅ Cliente conectado: {client_id}')
+    
+    try:
+        while True:
+            # Leer longitud del mensaje (4 bytes)
+            raw_len = await reader.readexactly(4)
+            if not raw_len:
+                break
+            
+            length = struct.unpack('!I', raw_len)[0]
+            
+            # Leer el payload completo
+            encrypted_data = await reader.readexactly(length)
+            
+            if len(encrypted_data) == length:
                 try:
-                    raw_len = self.conn.recv(4)
-                    if not raw_len:
-                        break
-                    (length,) = struct.unpack('!I', raw_len)
+                    import binascii
+                    print(f'📡 Datos cifrados recibidos de {client_id}: {binascii.hexlify(encrypted_data[:50]).decode()}...')
+                    print(f'📏 Tamaño recibido: {len(encrypted_data)} bytes')
                     
-                    buf = bytearray()
-                    while len(buf) < length:
-                        chunk = self.conn.recv(length - len(buf))
-                        if not chunk:
-                            break
-                        buf.extend(chunk)
+                    # Descifrar mensaje
+                    plaintext = crypto.decrypt_message(encrypted_data)
                     
-                    if len(buf) == length:
-                        try:
-                            import binascii
-                            print(f'📡 Datos cifrados recibidos: {binascii.hexlify(buf[:50]).decode()}...')
-                            print(f'📏 Tamaño recibido: {len(buf)} bytes')
-                            
-                            plaintext = self.crypto.decrypt_message(buf)
-                            msg_queue.put((client_id, plaintext))
-                            print(f'🔓 Mensaje descifrado: "{plaintext}"')
-                        except ValueError as e:
-                            print(f'❌ Error de descifrado de {client_id}: {e}')
-                        except Exception as e:
-                            print(f'❌ Error inesperado de {client_id}: {e}')
-                except (ConnectionError, struct.error, OSError):
-                    break
-            print(f'Cliente desconectado: {client_id}')
+                    # Verificar hash SHA256 del mensaje descifrado
+                    message_hash = crypto.hash_message(plaintext)
+                    print(f'🔐 Hash SHA256 del mensaje: {message_hash}')
+                    
+                    # Registrar en log
+                    log.info('%s | %s | Hash: %s', client_id, plaintext, message_hash)
+                    print(f'🔓 Mensaje descifrado: "{plaintext}"')
+                    
+                except ValueError as e:
+                    print(f'❌ Error de descifrado de {client_id}: {e}')
+                    log.warning('%s | Error de descifrado: %s', client_id, str(e))
+                except Exception as e:
+                    print(f'❌ Error inesperado de {client_id}: {e}')
+                    log.error('%s | Error inesperado: %s', client_id, str(e))
+                    
+    except asyncio.IncompleteReadError:
+        # Cliente desconectado normalmente
+        pass
+    except Exception as e:
+        print(f'❌ Error en conexión con {client_id}: {e}')
+        log.error('%s | Error de conexión: %s', client_id, str(e))
+    finally:
+        connected_clients.discard(writer)
+        writer.close()
+        await writer.wait_closed()
+        print(f'👋 Cliente desconectado: {client_id}')
+
+async def main_server(host, port, crypto, log_file, max_bytes, backups):
+    """
+    Función principal del servidor asíncrono.
+    
+    Args:
+        host: Dirección IP de escucha
+        port: Puerto de escucha
+        crypto: Instancia de SymmetricCrypto
+        log_file: Nombre del archivo de log
+        max_bytes: Tamaño máximo del archivo de log
+        backups: Número de archivos de respaldo
+    """
+    setup_logger(log_file, max_bytes, backups)
+    
+    server = await asyncio.start_server(
+        lambda r, w: handle_client(r, w, crypto),
+        host, port
+    )
+    
+    addr = server.sockets[0].getsockname()
+    print(f'🚀 Servidor asíncrono escuchando en {addr[0]}:{addr[1]}')
+    print(f'🔐 Cifrado simétrico AES-256-GCM + HMAC + SHA256 activado')
+    print(f'📝 Logs guardándose en: {log_file}')
+    print(f'⚡ Modo asíncrono: Manejo eficiente de múltiples clientes')
+    print('💡 Presiona Ctrl+C para detener el servidor')
+    
+    async with server:
+        try:
+            await server.serve_forever()
+        except KeyboardInterrupt:
+            print('\n🛑 Deteniendo servidor...')
+            # Cerrar todas las conexiones
+            for writer in connected_clients.copy():
+                writer.close()
+                await writer.wait_closed()
 
 def main():
-    parser = argparse.ArgumentParser(description='Servidor de chat TCP con cifrado simétrico')
+    """Punto de entrada principal."""
+    parser = argparse.ArgumentParser(description='Servidor de chat TCP asíncrono con cifrado simétrico')
     parser.add_argument('--host', default='0.0.0.0', help='IP de escucha (default: 0.0.0.0)')
     parser.add_argument('--port', type=int, default=9000, help='Puerto de escucha (default: 9000)')
     parser.add_argument('--log-file', default='chat.log', help='Archivo de log (default: chat.log)')
@@ -83,47 +147,19 @@ def main():
     
     args = parser.parse_args()
     
-    global HOST, PORT
-    HOST, PORT = args.host, args.port
-    
     crypto = SymmetricCrypto(args.password)
     
-    def logger():
-        log = logging.getLogger('chat')
-        log.setLevel(logging.INFO)
-        
-        file_handler = RotatingFileHandler(args.log_file, maxBytes=args.max_bytes, backupCount=args.backups)
-        file_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-        log.addHandler(file_handler)
-        
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter('%(asctime)s | %(message)s'))
-        log.addHandler(console_handler)
-        
-        while not stop_event.is_set() or not msg_queue.empty():
-            try:
-                client_id, text = msg_queue.get(timeout=1)
-                log.info('%s | %s', client_id, text)
-            except queue.Empty:
-                pass
-    
-    threading.Thread(target=logger, daemon=True).start()
-    
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        s.bind((HOST, PORT))
-        s.listen()
-        print(f'🚀 Servidor escuchando en {HOST}:{PORT}')
-        print(f'🔐 Cifrado simétrico AES-256-GCM + HMAC activado')
-        print(f'📝 Logs guardándose en: {args.log_file}')
-        print('💡 Presiona Ctrl+C para detener el servidor')
-        try:
-            while True:
-                conn, addr = s.accept()
-                ClientHandler(conn, addr, crypto).start()
-        except KeyboardInterrupt:
-            print('\n🛑 Deteniendo servidor...')
-            stop_event.set()
+    try:
+        asyncio.run(main_server(
+            args.host, 
+            args.port, 
+            crypto, 
+            args.log_file, 
+            args.max_bytes, 
+            args.backups
+        ))
+    except KeyboardInterrupt:
+        print('\n👋 Servidor detenido')
 
 if __name__ == '__main__':
     main()
