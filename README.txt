@@ -2,8 +2,91 @@
                     HISTORIAL DE CAMBIOS - CHAT ASÍNCRONO
 ================================================================================
 
-Este documento registra todos los cambios realizados en el proyecto de chat
-con cifrado simétrico, incluyendo la migración a arquitectura asíncrona.
+Este documento registra todos los cambios realizados en el proyecto de chat,
+incluyendo la migración a arquitectura asíncrona y cifrado híbrido.
+
+================================================================================
+VERSIÓN 3.0 - Migración a Cifrado Híbrido (RSA + AES)
+Fecha: 2025-11-19
+================================================================================
+
+DESCRIPCIÓN GENERAL:
+Se migró completamente el proyecto de cifrado simétrico a cifrado híbrido,
+combinando lo mejor de cifrado asimétrico (RSA) y simétrico (AES). Esta
+versión elimina la necesidad de compartir contraseñas y proporciona mayor
+seguridad y escalabilidad para múltiples usuarios.
+
+CAMBIOS PRINCIPALES:
+
+1. CRYPTO_UTILS.PY - Implementación de Cifrado Híbrido
+   - Nueva clase: HybridCrypto para manejar cifrado híbrido
+   - RSA-2048: Generación automática de pares de claves para cada conexión
+   - Intercambio seguro de claves: Clave AES cifrada con RSA
+   - AES-256-GCM: Mantiene cifrado rápido para mensajes
+   - Clase legacy: SymmetricCrypto mantenida para compatibilidad (deprecated)
+   - Mejoras:
+     * Sin necesidad de contraseñas compartidas
+     * Cada conexión tiene su propio par de claves RSA
+     * Intercambio automático de claves públicas
+     * Mayor seguridad para entornos multi-usuario
+
+2. SERVER.PY - Soporte para Cifrado Híbrido
+   - Eliminado: Parámetro --password (ya no necesario)
+   - Agregado: Función exchange_keys() para intercambio RSA
+   - Modificado: handle_client() ahora genera HybridCrypto por conexión
+   - Mejoras:
+     * Cada cliente tiene su propia instancia de cifrado
+     * Intercambio automático de claves al conectar
+     * Mayor seguridad sin compartir secretos
+     * Escalable para múltiples usuarios independientes
+
+3. CLIENT.PY - Soporte para Cifrado Híbrido
+   - Eliminado: Parámetro --password (ya no necesario)
+   - Agregado: Función exchange_keys() para intercambio RSA
+   - Modificado: main_client() genera HybridCrypto y establece conexión segura
+   - Mejoras:
+     * Generación automática de par de claves RSA
+     * Intercambio seguro de claves con servidor
+     * Sin necesidad de configurar contraseñas
+     * Listo para múltiples clientes simultáneos
+
+BENEFICIOS DEL CIFRADO HÍBRIDO:
+
+1. Seguridad:
+   - Sin contraseñas compartidas: Cada conexión establece su propia clave AES
+   - RSA-2048: Cifrado asimétrico robusto para intercambio de claves
+   - AES-256-GCM: Cifrado simétrico rápido para mensajes
+   - Mejor protección contra ataques de man-in-the-middle
+
+2. Escalabilidad:
+   - Ideal para múltiples usuarios sin compartir secretos
+   - Cada cliente tiene su propio par de claves RSA
+   - No hay límite de usuarios por contraseña compartida
+   - Preparado para crecimiento empresarial
+
+3. Mantenibilidad:
+   - Sin gestión de contraseñas compartidas
+   - Intercambio automático de claves
+   - Código más seguro por defecto
+   - Compatible con estándares de seguridad modernos
+
+SEGURIDAD MEJORADA:
+
+- Cifrado Híbrido: RSA-2048 para claves + AES-256-GCM para mensajes
+- Intercambio seguro: Claves AES cifradas con RSA antes de transmitirse
+- Sin contraseñas compartidas: Elimina vector de ataque común
+- SHA256 Hash: Se mantiene para verificación de integridad
+- HMAC-SHA256: Se mantiene para verificación del payload cifrado
+
+MD5 DE ARCHIVOS - VERSIÓN 3.0 (2025-11-19):
+
+| Archivo | MD5 | Fecha de cambio |
+|---------|-----|-----------------|
+| server.py | `eb818069eeb98ff97b3da10d21f58b2f` | 2025-11-19 |
+| client.py | `ef87c47acbe985866e2666b94b36fc37` | 2025-11-19 |
+| crypto_utils.py | `6c26258132d8e030857d73d651d156a1` | 2025-11-19 |
+| mostrar_cifrado.py | `c6ea27b39da48f363cfb2102994f33fd` | 2025-10-22 |
+| calcular_md5.py | `1832f95ca60a02101473cee1e5434ba9` | 2025-11-19 |
 
 ================================================================================
 VERSIÓN 2.0 - Migración a Arquitectura Asíncrona

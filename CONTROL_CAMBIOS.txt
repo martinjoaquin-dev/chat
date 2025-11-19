@@ -3,28 +3,71 @@
                     Documento para Presentación con Cliente
 ================================================================================
 
-PROYECTO: Chat TCP con Cifrado Simétrico - Versión Asíncrona
+PROYECTO: Chat TCP con Cifrado Híbrido - Versión Asíncrona
 FECHA INICIO: 2025-10-08
 ÚLTIMA ACTUALIZACIÓN: 2025-11-19
-VERSIÓN ACTUAL: 2.0
+VERSIÓN ACTUAL: 3.0
 
 ================================================================================
 RESUMEN EJECUTIVO
 ================================================================================
 
 Este proyecto implementa un sistema de chat cliente-servidor con cifrado
-simétrico robusto, migrado a arquitectura asíncrona para mejorar escalabilidad
-y rendimiento. El sistema utiliza cifrado AES-256-GCM con HMAC-SHA256 y
-verificación SHA256 adicional para máxima seguridad.
+híbrido (RSA + AES) de grado empresarial, migrado a arquitectura asíncrona
+para máxima escalabilidad y rendimiento. El sistema utiliza RSA-2048 para
+intercambio seguro de claves y AES-256-GCM con HMAC-SHA256 para cifrado rápido
+de mensajes, proporcionando seguridad superior sin necesidad de contraseñas
+compartidas.
 
 ================================================================================
 HISTORIAL DE VERSIONES
 ================================================================================
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ VERSIÓN 2.0 - Arquitectura Asíncrona                                        │
+│ VERSIÓN 3.0 - Cifrado Híbrido (RSA + AES)                                   │
 │ Fecha: 2025-11-19                                                           │
 │ Estado: COMPLETADO                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CAMBIOS IMPLEMENTADOS:
+
+1. Migración a Cifrado Híbrido
+   ✓ Implementación de RSA-2048 para intercambio de claves
+   ✓ AES-256-GCM para cifrado rápido de mensajes
+   ✓ Intercambio automático de claves públicas RSA
+   ✓ Eliminación de contraseñas compartidas
+   ✓ Cada conexión tiene su propio par de claves RSA
+
+2. Mejoras de Seguridad
+   ✓ Sin contraseñas compartidas: Elimina vector de ataque común
+   ✓ Intercambio seguro de claves AES cifradas con RSA
+   ✓ Mayor seguridad para entornos multi-usuario
+   ✓ Mantenimiento de SHA256 y HMAC-SHA256 para integridad
+
+3. Escalabilidad Empresarial
+   ✓ Preparado para múltiples usuarios sin compartir secretos
+   ✓ Sin límite de usuarios por contraseña compartida
+   ✓ Ideal para crecimiento empresarial
+   ✓ Compatible con estándares de seguridad modernos
+
+BENEFICIOS OBTENIDOS:
+- Seguridad superior: Cifrado híbrido de grado empresarial
+- Escalabilidad: Sin límites por contraseñas compartidas
+- Mantenibilidad: Sin gestión de contraseñas compartidas
+- Preparado para producción: Estándares de seguridad modernos
+
+ARCHIVOS MODIFICADOS:
+- server.py (MD5: eb818069eeb98ff97b3da10d21f58b2f)
+- client.py (MD5: ef87c47acbe985866e2666b94b36fc37)
+- crypto_utils.py (MD5: 6c26258132d8e030857d73d651d156a1)
+
+ARCHIVOS NUEVOS:
+- Ninguno (modificaciones en archivos existentes)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VERSIÓN 2.0 - Arquitectura Asíncrona                                        │
+│ Fecha: 2025-11-19                                                           │
+│ Estado: COMPLETADO (base para v3.0)                                         │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 CAMBIOS IMPLEMENTADOS:
@@ -83,12 +126,12 @@ CONTROL DE INTEGRIDAD - MD5 DE ARCHIVOS
 ┌──────────────────────────────┬──────────────────────────────────┬──────────────┐
 │ Archivo                      │ MD5                              │ Fecha        │
 ├──────────────────────────────┼──────────────────────────────────┼──────────────┤
-│ server.py                    │ 8e6483ab0156066a822851036bed0f91 │ 2025-11-19   │
-│ client.py                    │ 715e500ff50413e2181027b877657fbc │ 2025-11-19   │
-│ crypto_utils.py              │ b552d4565126f25cfaeb87ff8e9bfa6a │ 2025-11-19   │
+│ server.py                    │ eb818069eeb98ff97b3da10d21f58b2f │ 2025-11-19   │
+│ client.py                    │ ef87c47acbe985866e2666b94b36fc37 │ 2025-11-19   │
+│ crypto_utils.py              │ 6c26258132d8e030857d73d651d156a1 │ 2025-11-19   │
 │ mostrar_cifrado.py           │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
 │ calcular_md5.py              │ 1832f95ca60a02101473cee1e5434ba9 │ 2025-11-19   │
-│ README.md                    │ (verificar con calcular_md5.py) │ 2025-11-19   │
+│ README.md                    │ (verificar con calcular_md5.py)  │ 2025-01-XX   │
 └──────────────────────────────┴──────────────────────────────────┴──────────────┘
 
 NOTA: Para verificar integridad de archivos, ejecutar:
@@ -98,19 +141,31 @@ NOTA: Para verificar integridad de archivos, ejecutar:
 MEJORAS DE SEGURIDAD IMPLEMENTADAS
 ================================================================================
 
-1. CIFRADO SIMÉTRICO
-   - Algoritmo: AES-256-GCM
-   - Autenticación: HMAC-SHA256
-   - Derivación de claves: PBKDF2 con 100,000 iteraciones
+1. CIFRADO HÍBRIDO
+   - RSA-2048: Cifrado asimétrico para intercambio seguro de claves AES
+   - AES-256-GCM: Cifrado simétrico rápido para mensajes
+   - Padding OAEP: Con SHA256 para RSA
+   - Claves RSA generadas dinámicamente por conexión
 
-2. VERIFICACIÓN DE INTEGRIDAD
+2. INTERCAMBIO DE CLAVES
+   - Intercambio automático de claves públicas RSA
+   - Clave AES cifrada con RSA antes de transmitirse
+   - Sin contraseñas compartidas requeridas
+   - Cada conexión establece su propia clave AES
+
+3. VERIFICACIÓN DE INTEGRIDAD
    - HMAC-SHA256: Verificación de integridad del payload cifrado
    - SHA256 Hash: Verificación adicional del mensaje descifrado
    - Logs incluyen hash SHA256 para auditoría
 
-3. PROTOCOLO DE CIFRADO
-   Estructura del mensaje cifrado:
-   [12 bytes: IV] + [16 bytes: Tag GCM] + [32 bytes: HMAC] + [ciphertext]
+4. PROTOCOLO DE CIFRADO
+   Fase 1 - Intercambio de claves:
+   - Cliente y servidor intercambian claves públicas RSA
+   - Cliente genera clave AES y la cifra con RSA del servidor
+   - Servidor descifra clave AES con su clave privada RSA
+   
+   Fase 2 - Cifrado de mensajes:
+   Estructura: [12 bytes: IV] + [16 bytes: Tag GCM] + [32 bytes: HMAC] + [ciphertext]
 
 ================================================================================
 MÉTRICAS DE RENDIMIENTO
@@ -136,11 +191,12 @@ PRÓXIMAS MEJORAS PLANEADAS
 ================================================================================
 
 - [ ] Autenticación de usuarios
-- [ ] Rotación automática de claves
+- [ ] Rotación automática de claves RSA
 - [ ] Interfaz gráfica de usuario
-- [ ] Cifrado asimétrico opcional (RSA/ECDSA)
+- [ ] Persistencia segura de claves RSA
 - [ ] Compresión de mensajes
 - [ ] Sistema de salas/canales
+- [ ] Firma digital de mensajes
 
 ================================================================================
 INFORMACIÓN DE CONTACTO Y SOPORTE

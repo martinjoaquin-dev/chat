@@ -1,6 +1,6 @@
-# client.py - Versión Asíncrona
+# client.py - Versión Asíncrona con Cifrado Híbrido
 """
-Cliente de chat TCP asíncrono con cifrado simétrico.
+Cliente de chat TCP asíncrono con cifrado híbrido (RSA + AES).
 Utiliza asyncio para comunicación no bloqueante con el servidor.
 """
 
@@ -8,7 +8,42 @@ import asyncio
 import struct
 import sys
 import argparse
-from crypto_utils import SymmetricCrypto
+from crypto_utils import HybridCrypto
+
+async def exchange_keys(reader, writer, client_crypto):
+    """
+    Intercambia claves públicas RSA y establece la clave AES compartida.
+    
+    Args:
+        reader: StreamReader para leer datos
+        writer: StreamWriter para escribir datos
+        client_crypto: Instancia de HybridCrypto del cliente
+        
+    Returns:
+        bool: True si el intercambio fue exitoso
+    """
+    try:
+        # 1. Recibir clave pública del servidor
+        raw_len = await reader.readexactly(4)
+        server_key_len = struct.unpack('!I', raw_len)[0]
+        server_public_key = await reader.readexactly(server_key_len)
+        client_crypto.load_peer_public_key(server_public_key)
+        
+        # 2. Enviar clave pública del cliente al servidor
+        client_public_key = client_crypto.get_public_key_pem()
+        key_len = len(client_public_key)
+        writer.write(struct.pack('!I', key_len) + client_public_key)
+        await writer.drain()
+        
+        # 3. Generar y cifrar clave AES, enviarla al servidor
+        encrypted_aes_key = client_crypto.generate_and_encrypt_aes_key()
+        writer.write(struct.pack('!I', len(encrypted_aes_key)) + encrypted_aes_key)
+        await writer.drain()
+        
+        return True
+    except Exception as e:
+        print(f'Error en intercambio de claves: {e}')
+        return False
 
 async def send_message(writer, crypto, message):
     """
@@ -16,7 +51,7 @@ async def send_message(writer, crypto, message):
     
     Args:
         writer: StreamWriter para escribir datos
-        crypto: Instancia de SymmetricCrypto para cifrar mensajes
+        crypto: Instancia de HybridCrypto para cifrar mensajes
         message: Mensaje de texto a enviar
     """
     try:
@@ -27,19 +62,19 @@ async def send_message(writer, crypto, message):
         message_hash = crypto.hash_message(message)
         
         import binascii
-        print(f'🔐 Datos cifrados: {binascii.hexlify(encrypted_payload[:50]).decode()}...')
-        print(f'📏 Tamaño: {len(encrypted_payload)} bytes')
-        print(f'🔐 Hash SHA256 del mensaje: {message_hash}')
+        print(f'Datos cifrados: {binascii.hexlify(encrypted_payload[:50]).decode()}...')
+        print(f'Tamano: {len(encrypted_payload)} bytes')
+        print(f'Hash SHA256 del mensaje: {message_hash}')
         
         # Enviar longitud + payload
         data = struct.pack('!I', len(encrypted_payload)) + encrypted_payload
         writer.write(data)
         await writer.drain()
         
-        print('✔ Mensaje cifrado y enviado')
+        print('Mensaje cifrado y enviado')
         
     except Exception as e:
-        print(f'❌ Error al cifrar/enviar mensaje: {e}')
+        print(f'Error al cifrar/enviar mensaje: {e}')
 
 async def read_input():
     """
@@ -51,23 +86,33 @@ async def read_input():
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, sys.stdin.readline)
 
-async def main_client(host, port, crypto):
+async def main_client(host, port):
     """
     Función principal del cliente asíncrono.
     
     Args:
         host: Dirección IP del servidor
         port: Puerto del servidor
-        crypto: Instancia de SymmetricCrypto
     """
     try:
         reader, writer = await asyncio.open_connection(host, port)
         
-        print(f'✅ Conectado a {host}:{port}')
-        print('🔐 Cifrado simétrico AES-256-GCM + HMAC + SHA256 activado')
-        print('⚡ Modo asíncrono: Comunicación no bloqueante')
-        print('💬 Escribe mensajes y presiona Enter (Ctrl+C para salir)')
-        print('─' * 50)
+        print(f'Conectado a {host}:{port}')
+        
+        # Crear instancia de cifrado híbrido
+        crypto = HybridCrypto()
+        
+        # Intercambiar claves RSA y establecer clave AES
+        print('Intercambiando claves con el servidor...')
+        if not await exchange_keys(reader, writer, crypto):
+            print('Error en intercambio de claves')
+            return
+        
+        print('Claves intercambiadas exitosamente')
+        print('Cifrado hibrido RSA + AES-256-GCM + HMAC + SHA256 activado')
+        print('Modo asincrono: Comunicacion no bloqueante')
+        print('Escribe mensajes y presiona Enter (Ctrl+C para salir)')
+        print('-' * 50)
         
         # Tarea para leer entrada del usuario
         async def input_loop():
@@ -82,39 +127,36 @@ async def main_client(host, port, crypto):
                 except EOFError:
                     break
                 except Exception as e:
-                    print(f'❌ Error: {e}')
+                    print(f'Error: {e}')
                     break
         
         # Ejecutar loop de entrada
         try:
             await input_loop()
         except KeyboardInterrupt:
-            print('\n👋 Interrumpido por el usuario — hasta luego')
+            print('\nInterrumpido por el usuario - hasta luego')
         finally:
             writer.close()
             await writer.wait_closed()
             
     except ConnectionRefusedError:
-        print(f'❌ No se pudo conectar a {host}:{port}')
-        print('💡 ¿Está el servidor corriendo? Verifica con: python server.py')
+        print(f'No se pudo conectar a {host}:{port}')
+        print('¿Esta el servidor corriendo? Verifica con: python server.py')
     except Exception as e:
-        print(f'❌ Error: {e}')
+        print(f'Error: {e}')
 
 def main():
     """Punto de entrada principal."""
-    parser = argparse.ArgumentParser(description='Cliente de chat TCP asíncrono con cifrado simétrico')
+    parser = argparse.ArgumentParser(description='Cliente de chat TCP asíncrono con cifrado híbrido')
     parser.add_argument('--host', default='127.0.0.1', help='IP del servidor (default: 127.0.0.1)')
     parser.add_argument('--port', type=int, default=9000, help='Puerto del servidor (default: 9000)')
-    parser.add_argument('--password', default='chat_secret_key_2024', help='Contraseña para cifrado (default: chat_secret_key_2024)')
     
     args = parser.parse_args()
     
-    crypto = SymmetricCrypto(args.password)
-    
     try:
-        asyncio.run(main_client(args.host, args.port, crypto))
+        asyncio.run(main_client(args.host, args.port))
     except KeyboardInterrupt:
-        print('\n👋 Cliente cerrado')
+        print('\nCliente cerrado')
 
 if __name__ == '__main__':
     main()
