@@ -3,7 +3,86 @@
 ================================================================================
 
 Este documento registra todos los cambios realizados en el proyecto de chat,
-incluyendo la migración a arquitectura asíncrona y cifrado híbrido.
+incluyendo la migración a arquitectura asíncrona, cifrado híbrido y validación
+SHA256 en intercambio de mensajes.
+
+================================================================================
+VERSIÓN 4.0 - Validación SHA256 en Intercambio de Mensajes
+Fecha: 2025-11-19
+================================================================================
+
+DESCRIPCIÓN GENERAL:
+Se implementó validación obligatoria de SHA256 en el intercambio de mensajes.
+Cada mensaje enviado por el cliente debe incluir su hash SHA256, y el servidor
+valida que el hash recibido coincida con el hash calculado del mensaje
+descifrado. Los mensajes con hash no coincidente son descartados automáticamente.
+
+CAMBIOS PRINCIPALES:
+
+1. CLIENT.PY - Envío de Hash SHA256
+   - Modificado: send_message() ahora calcula hash SHA256 antes de cifrar
+   - Agregado: Hash SHA256 (32 bytes) se envía junto con el mensaje cifrado
+   - Estructura: [longitud] + [32 bytes: hash SHA256] + [payload cifrado]
+   - Mejoras:
+     * Hash calculado del mensaje original (antes de cifrar)
+     * Hash incluido en cada transmisión
+     * Mayor protección contra alteración de mensajes
+
+2. SERVER.PY - Validación SHA256 Obligatoria
+   - Modificado: handle_client() ahora extrae y valida hash SHA256
+   - Agregado: Comparación de hash recibido vs hash calculado
+   - Agregado: Descarte automático de mensajes con hash no coincidente
+   - Mejoras:
+     * Validación obligatoria antes de aceptar mensaje
+     * Mensajes inválidos son descartados y registrados en logs
+     * Protección contra mensajes alterados o corruptos
+     * Logs mejorados con información de validación
+
+3. PROTOCOLO DE MENSAJES
+   - Estructura actualizada:
+     [4 bytes: longitud total]
+     [32 bytes: Hash SHA256 del mensaje original]
+     [12 bytes: IV]
+     [16 bytes: Tag GCM]
+     [32 bytes: HMAC-SHA256]
+     [resto: ciphertext AES-256-GCM]
+
+BENEFICIOS DE LA VALIDACIÓN SHA256:
+
+1. Seguridad:
+   - Detección automática de mensajes alterados en tránsito
+   - Protección contra corrupción de datos
+   - Validación obligatoria en cada mensaje
+   - Mayor confianza en la integridad de los datos
+
+2. Auditoría:
+   - Logs registran intentos de mensajes inválidos
+   - Trazabilidad de mensajes rechazados
+   - Información detallada de validaciones fallidas
+   - Mejor monitoreo de seguridad
+
+3. Robustez:
+   - Sistema más resistente a ataques de manipulación
+   - Descarte automático de mensajes comprometidos
+   - Prevención de procesamiento de datos corruptos
+   - Mayor confiabilidad del sistema
+
+SEGURIDAD MEJORADA:
+
+- Validación SHA256 obligatoria: Cada mensaje debe pasar validación
+- Protección contra alteración: Mensajes modificados son detectados
+- Integridad garantizada: Solo mensajes válidos son procesados
+- Logs de seguridad: Intentos de mensajes inválidos son registrados
+
+MD5 DE ARCHIVOS - VERSIÓN 4.0 (2025-11-19):
+
+| Archivo | MD5 | Fecha de cambio |
+|---------|-----|-----------------|
+| server.py | `ae21a882e1a6bac3ed008c28331295fd` | 2025-11-19 |
+| client.py | `27e5385e75efcf34b63e2509e6448d2a` | 2025-11-19 |
+| crypto_utils.py | `6c26258132d8e030857d73d651d156a1` | 2025-11-19 |
+| mostrar_cifrado.py | `c6ea27b39da48f363cfb2102994f33fd` | 2025-10-22 |
+| calcular_md5.py | `1832f95ca60a02101473cee1e5434ba9` | 2025-11-19 |
 
 ================================================================================
 VERSIÓN 3.0 - Migración a Cifrado Híbrido (RSA + AES)

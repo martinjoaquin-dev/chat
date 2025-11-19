@@ -36,10 +36,11 @@ Un sistema de chat cliente-servidor TCP **asíncrono** con cifrado híbrido (RSA
 3. Cliente genera clave AES aleatoria y la cifra con la clave pública del servidor
 4. Servidor descifra la clave AES con su clave privada RSA
 
-**Fase 2: Cifrado de Mensajes (AES)**
+**Fase 2: Cifrado de Mensajes (AES) con Validación SHA256**
 ```
 Mensaje cifrado:
 [4 bytes: longitud total]
+[32 bytes: Hash SHA256 del mensaje original]
 [12 bytes: IV (nonce)]
 [16 bytes: tag de autenticación GCM]
 [32 bytes: HMAC-SHA256]
@@ -49,11 +50,15 @@ Mensaje cifrado:
 ### Flujo de Comunicación
 1. **Conexión** → Cliente y servidor intercambian claves públicas RSA
 2. **Establecimiento de clave** → Cliente cifra clave AES con RSA y la envía al servidor
-3. **Cliente** → Cifra mensaje con AES-256-GCM + HMAC, calcula hash SHA256
-4. **Red** → Transmisión segura de datos cifrados
-5. **Servidor** → Verifica HMAC y descifra con AES-256-GCM
-6. **Servidor** → Calcula y verifica hash SHA256 del mensaje descifrado
-7. **Log** → Almacena mensaje descifrado con hash SHA256 para auditoría
+3. **Cliente** → Calcula hash SHA256 del mensaje original, cifra mensaje con AES-256-GCM + HMAC
+4. **Cliente** → Envía hash SHA256 + mensaje cifrado al servidor
+5. **Red** → Transmisión segura de datos cifrados con hash SHA256
+6. **Servidor** → Extrae hash SHA256 recibido y datos cifrados
+7. **Servidor** → Verifica HMAC y descifra con AES-256-GCM
+8. **Servidor** → Calcula hash SHA256 del mensaje descifrado
+9. **Servidor** → **VALIDACIÓN**: Compara hash recibido con hash calculado
+10. **Servidor** → Si coinciden: acepta mensaje; si no: descarta mensaje
+11. **Log** → Almacena mensaje descifrado con hash SHA256 para auditoría
 
 ## 📦 Instalación
 
@@ -168,6 +173,12 @@ python mostrar_cifrado.py
 - ✅ **Seguro**: Combinación de lo mejor de cifrado simétrico y asimétrico
 - ✅ **Autenticación**: Cada cliente tiene su propio par de claves RSA
 
+### Validación SHA256 (v4.0)
+- ✅ **Validación obligatoria**: Cada mensaje debe incluir hash SHA256 válido
+- ✅ **Protección contra alteración**: Mensajes modificados son detectados y descartados
+- ✅ **Integridad garantizada**: Solo se aceptan mensajes con hash SHA256 coincidente
+- ✅ **Auditoría mejorada**: Logs registran intentos de mensajes inválidos
+
 ### Buenas Prácticas
 - ✅ Monitorea los logs para actividad sospechosa
 - ✅ Considera implementar autenticación de usuarios adicional
@@ -212,7 +223,15 @@ chat/
 
 ## 🔄 Versiones
 
-### Versión 3.0 - Cifrado Híbrido (Actual)
+### Versión 4.0 - Validación SHA256 en Intercambio (Actual)
+- ✅ Validación obligatoria de SHA256 en cada mensaje
+- ✅ Cliente envía hash SHA256 junto con mensaje cifrado
+- ✅ Servidor valida hash SHA256 antes de aceptar mensaje
+- ✅ Mensajes con hash no coincidente son descartados automáticamente
+- ✅ Mayor protección contra mensajes alterados o corruptos
+- ✅ Logs mejorados con información de validación
+
+### Versión 3.0 - Cifrado Híbrido
 - ✅ Migración a cifrado híbrido (RSA + AES)
 - ✅ Intercambio automático de claves RSA-2048
 - ✅ Sin necesidad de contraseñas compartidas
@@ -248,16 +267,18 @@ chat/
 
 ## 📝 Control de Versiones
 
-**Última actualización: 2025-11-19 (Versión 3.0)**
+**Última actualización: 2025-11-19 (Versión 4.0)**
 
 | Archivo           | MD5                                   | Fecha de cambio | Versión |
 |-------------------|---------------------------------------|-----------------|---------|
+| server.py         | `ae21a882e1a6bac3ed008c28331295fd`    | 2025-11-19      | 4.0     |
 | server.py         | `eb818069eeb98ff97b3da10d21f58b2f`    | 2025-11-19      | 3.0     |
+| client.py         | `27e5385e75efcf34b63e2509e6448d2a`    | 2025-11-19      | 4.0     |
 | client.py         | `ef87c47acbe985866e2666b94b36fc37`    | 2025-11-19      | 3.0     |
 | crypto_utils.py   | `6c26258132d8e030857d73d651d156a1`    | 2025-11-19      | 3.0     |
 | mostrar_cifrado.py| `c6ea27b39da48f363cfb2102994f33fd`    | 2025-10-22      | 1.0     |
 | calcular_md5.py   | `1832f95ca60a02101473cee1e5434ba9`    | 2025-11-19      | 2.0     |
-| README.md         | (verificar con calcular_md5.py)       | 2025-01-XX      | 3.0     |
+| README.md         | (verificar con calcular_md5.py)       | 2025-11-19      | 4.0     |
 
 **Nota:** Para calcular MD5 de archivos actualizados, ejecutar: `python calcular_md5.py`
 

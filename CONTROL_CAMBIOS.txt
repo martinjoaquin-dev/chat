@@ -6,7 +6,7 @@
 PROYECTO: Chat TCP con Cifrado Híbrido - Versión Asíncrona
 FECHA INICIO: 2025-10-08
 ÚLTIMA ACTUALIZACIÓN: 2025-11-19
-VERSIÓN ACTUAL: 3.0
+VERSIÓN ACTUAL: 4.0
 
 ================================================================================
 RESUMEN EJECUTIVO
@@ -16,17 +16,56 @@ Este proyecto implementa un sistema de chat cliente-servidor con cifrado
 híbrido (RSA + AES) de grado empresarial, migrado a arquitectura asíncrona
 para máxima escalabilidad y rendimiento. El sistema utiliza RSA-2048 para
 intercambio seguro de claves y AES-256-GCM con HMAC-SHA256 para cifrado rápido
-de mensajes, proporcionando seguridad superior sin necesidad de contraseñas
-compartidas.
+de mensajes. La versión 4.0 agrega validación obligatoria de SHA256 en cada
+mensaje, descartando automáticamente mensajes con integridad comprometida.
 
 ================================================================================
 HISTORIAL DE VERSIONES
 ================================================================================
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│ VERSIÓN 3.0 - Cifrado Híbrido (RSA + AES)                                   │
+│ VERSIÓN 4.0 - Validación SHA256 en Intercambio                              │
 │ Fecha: 2025-11-19                                                           │
 │ Estado: COMPLETADO                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CAMBIOS IMPLEMENTADOS:
+
+1. Validación Obligatoria de SHA256
+   ✓ Cliente envía hash SHA256 junto con cada mensaje cifrado
+   ✓ Servidor valida hash SHA256 antes de aceptar mensaje
+   ✓ Mensajes con hash no coincidente son descartados automáticamente
+   ✓ Logs mejorados con información de validación
+
+2. Mejoras de Seguridad
+   ✓ Protección contra mensajes alterados en tránsito
+   ✓ Detección automática de corrupción de datos
+   ✓ Validación obligatoria en cada intercambio
+   ✓ Mayor confianza en la integridad de los datos
+
+3. Auditoría y Monitoreo
+   ✓ Logs registran intentos de mensajes inválidos
+   ✓ Trazabilidad de mensajes rechazados
+   ✓ Información detallada de validaciones fallidas
+   ✓ Mejor monitoreo de seguridad
+
+BENEFICIOS OBTENIDOS:
+- Seguridad superior: Validación obligatoria de integridad
+- Robustez: Sistema más resistente a manipulación
+- Auditoría: Trazabilidad completa de mensajes rechazados
+- Confiabilidad: Solo mensajes válidos son procesados
+
+ARCHIVOS MODIFICADOS:
+- server.py (MD5: ae21a882e1a6bac3ed008c28331295fd)
+- client.py (MD5: 27e5385e75efcf34b63e2509e6448d2a)
+
+ARCHIVOS NUEVOS:
+- Ninguno (modificaciones en archivos existentes)
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VERSIÓN 3.0 - Cifrado Híbrido (RSA + AES)                                   │
+│ Fecha: 2025-11-19                                                           │
+│ Estado: COMPLETADO (base para v4.0)                                        │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 CAMBIOS IMPLEMENTADOS:
@@ -126,8 +165,8 @@ CONTROL DE INTEGRIDAD - MD5 DE ARCHIVOS
 ┌──────────────────────────────┬──────────────────────────────────┬──────────────┐
 │ Archivo                      │ MD5                              │ Fecha        │
 ├──────────────────────────────┼──────────────────────────────────┼──────────────┤
-│ server.py                    │ eb818069eeb98ff97b3da10d21f58b2f │ 2025-11-19   │
-│ client.py                    │ ef87c47acbe985866e2666b94b36fc37 │ 2025-11-19   │
+│ server.py                    │ ae21a882e1a6bac3ed008c28331295fd │ 2025-11-19   │
+│ client.py                    │ 27e5385e75efcf34b63e2509e6448d2a │ 2025-11-19   │
 │ crypto_utils.py              │ 6c26258132d8e030857d73d651d156a1 │ 2025-11-19   │
 │ mostrar_cifrado.py           │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
 │ calcular_md5.py              │ 1832f95ca60a02101473cee1e5434ba9 │ 2025-11-19   │
@@ -164,8 +203,16 @@ MEJORAS DE SEGURIDAD IMPLEMENTADAS
    - Cliente genera clave AES y la cifra con RSA del servidor
    - Servidor descifra clave AES con su clave privada RSA
    
-   Fase 2 - Cifrado de mensajes:
-   Estructura: [12 bytes: IV] + [16 bytes: Tag GCM] + [32 bytes: HMAC] + [ciphertext]
+   Fase 2 - Cifrado de mensajes con validación SHA256 (v4.0):
+   Estructura: [4 bytes: longitud] + [32 bytes: Hash SHA256] + [12 bytes: IV] + 
+               [16 bytes: Tag GCM] + [32 bytes: HMAC] + [ciphertext]
+   
+   Validación:
+   - Cliente calcula hash SHA256 del mensaje original
+   - Cliente envía hash SHA256 junto con mensaje cifrado
+   - Servidor extrae hash SHA256 recibido
+   - Servidor descifra mensaje y calcula hash SHA256
+   - Servidor compara hashes: si coinciden acepta, si no descarta
 
 ================================================================================
 MÉTRICAS DE RENDIMIENTO

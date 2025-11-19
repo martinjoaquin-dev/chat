@@ -107,25 +107,50 @@ async def handle_client(reader, writer):
             
             length = struct.unpack('!I', raw_len)[0]
             
-            # Leer el payload completo
-            encrypted_data = await reader.readexactly(length)
+            # Leer el payload completo (hash SHA256 + datos cifrados)
+            full_payload = await reader.readexactly(length)
             
-            if len(encrypted_data) == length:
+            if len(full_payload) == length:
                 try:
                     import binascii
+                    
+                    # Extraer hash SHA256 (primeros 32 bytes) y datos cifrados
+                    if length < 32:
+                        print(f'[VALIDACION] Mensaje demasiado corto de {client_id}, descartado')
+                        log.warning('%s | Mensaje descartado: demasiado corto (sin hash SHA256)', client_id)
+                        continue
+                    
+                    received_hash_bytes = full_payload[0:32]
+                    received_hash = received_hash_bytes.hex()
+                    encrypted_data = full_payload[32:]
+                    
                     print(f'Datos cifrados recibidos de {client_id}: {binascii.hexlify(encrypted_data[:50]).decode()}...')
                     print(f'Tamano recibido: {len(encrypted_data)} bytes')
+                    print(f'Hash SHA256 recibido: {received_hash}')
                     
                     # Descifrar mensaje
                     plaintext = crypto.decrypt_message(encrypted_data)
                     
-                    # Verificar hash SHA256 del mensaje descifrado
-                    message_hash = crypto.hash_message(plaintext)
-                    print(f'Hash SHA256 del mensaje: {message_hash}')
+                    # Calcular hash SHA256 del mensaje descifrado
+                    calculated_hash = crypto.hash_message(plaintext)
+                    print(f'Hash SHA256 calculado: {calculated_hash}')
+                    
+                    # VALIDACION: Comparar hash recibido con hash calculado
+                    if received_hash != calculated_hash:
+                        print(f'[VALIDACION FALLIDA] Hash SHA256 no coincide de {client_id}')
+                        print(f'  Hash recibido: {received_hash}')
+                        print(f'  Hash calculado: {calculated_hash}')
+                        print(f'  Mensaje descartado por integridad comprometida')
+                        log.warning('%s | Mensaje descartado: Hash SHA256 no coincide | Recibido: %s | Calculado: %s', 
+                                  client_id, received_hash, calculated_hash)
+                        continue
+                    
+                    # Hash coincide, mensaje válido
+                    print(f'[VALIDACION EXITOSA] Hash SHA256 verificado correctamente')
+                    print(f'Mensaje descifrado: "{plaintext}"')
                     
                     # Registrar en log
-                    log.info('%s | %s | Hash: %s', client_id, plaintext, message_hash)
-                    print(f'Mensaje descifrado: "{plaintext}"')
+                    log.info('%s | %s | Hash: %s', client_id, plaintext, calculated_hash)
                     
                 except ValueError as e:
                     print(f'Error de descifrado de {client_id}: {e}')

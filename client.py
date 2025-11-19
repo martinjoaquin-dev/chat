@@ -47,7 +47,7 @@ async def exchange_keys(reader, writer, client_crypto):
 
 async def send_message(writer, crypto, message):
     """
-    Cifra y envía un mensaje al servidor.
+    Cifra y envía un mensaje al servidor con validación SHA256.
     
     Args:
         writer: StreamWriter para escribir datos
@@ -55,23 +55,28 @@ async def send_message(writer, crypto, message):
         message: Mensaje de texto a enviar
     """
     try:
+        # Calcular hash SHA256 del mensaje original ANTES de cifrar
+        message_hash = crypto.hash_message(message)
+        message_hash_bytes = bytes.fromhex(message_hash)
+        
         # Cifrar mensaje
         encrypted_payload = crypto.encrypt_message_payload(message)
-        
-        # Calcular hash SHA256 del mensaje original
-        message_hash = crypto.hash_message(message)
         
         import binascii
         print(f'Datos cifrados: {binascii.hexlify(encrypted_payload[:50]).decode()}...')
         print(f'Tamano: {len(encrypted_payload)} bytes')
         print(f'Hash SHA256 del mensaje: {message_hash}')
         
-        # Enviar longitud + payload
-        data = struct.pack('!I', len(encrypted_payload)) + encrypted_payload
+        # Construir payload: hash SHA256 (32 bytes) + payload cifrado
+        full_payload = message_hash_bytes + encrypted_payload
+        total_length = len(full_payload)
+        
+        # Enviar longitud + hash SHA256 + payload cifrado
+        data = struct.pack('!I', total_length) + full_payload
         writer.write(data)
         await writer.drain()
         
-        print('Mensaje cifrado y enviado')
+        print('Mensaje cifrado y enviado con hash SHA256')
         
     except Exception as e:
         print(f'Error al cifrar/enviar mensaje: {e}')
