@@ -5,8 +5,8 @@
 
 PROYECTO: Sistema de Chat Seguro con Firma Digital - Versión Asíncrona
 FECHA INICIO: 2025-10-08
-ÚLTIMA ACTUALIZACIÓN: 2025-11-19
-VERSIÓN ACTUAL: 6.0
+ÚLTIMA ACTUALIZACIÓN: 2025-11-20
+VERSIÓN ACTUAL: 7.0
 
 ================================================================================
 RESUMEN EJECUTIVO
@@ -24,6 +24,79 @@ stakeholders y usuarios no técnicos.
 ================================================================================
 HISTORIAL DE VERSIONES
 ================================================================================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ VERSIÓN 7.0 - Frontend Angular + Historial Persistente + Funcionalidad Admin│
+│ Fecha: 2025-11-20                                                           │
+│ Estado: COMPLETADO                                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+CAMBIOS IMPLEMENTADOS:
+
+1. Frontend Angular Completo
+   ✓ Migración completa de Tkinter a Angular 17
+   ✓ Diseño moderno y minimalista con Angular Material
+   ✓ Componentes: Login, Chat, Files, Dashboard
+   ✓ Servicios: Auth, Chat, File
+   ✓ Guards e Interceptors para autenticación
+   ✓ Responsive design y buenas prácticas UX/UI
+
+2. API REST con FastAPI
+   ✓ Gateway REST para conectar frontend con backend
+   ✓ Endpoints de autenticación (login/logout)
+   ✓ Endpoints de chat (enviar, recibir, status)
+   ✓ Endpoints de archivos (subir, listar, verificar)
+   ✓ CORS configurado para Angular
+   ✓ Manejo de sesiones con tokens
+
+3. Historial de Mensajes Persistente
+   ✓ Almacenamiento de mensajes en memoria y archivo JSON
+   ✓ Persistencia entre reinicios del servidor
+   ✓ TTL (Time To Live) configurable para mensajes
+   ✓ Límite de mensajes configurable
+   ✓ Limpieza automática de mensajes antiguos
+   ✓ Carga automática del historial al navegar
+
+4. Funcionalidad de Administración
+   ✓ Usuario admin puede finalizar/reiniciar el chat
+   ✓ Modal personalizado de confirmación
+   ✓ Eliminación completa del historial (memoria + archivo)
+   ✓ Verificación de permisos en backend
+   ✓ Interfaz diferenciada para admin
+
+5. Mejoras de UX/UI
+   ✓ Notificaciones (snackbars) con colores por tipo
+   ✓ Posición superior derecha para notificaciones
+   ✓ Iconos centrados verticalmente
+   ✓ Mejor espaciado y diseño visual
+   ✓ Modal personalizado con diseño del sistema
+
+6. Correcciones y Optimizaciones
+   ✓ Carga automática de historial al cambiar de sección
+   ✓ Manejo mejorado de errores
+   ✓ Logging mejorado en backend
+   ✓ Transformación de respuestas del servidor de archivos
+
+BENEFICIOS OBTENIDOS:
+- Experiencia de usuario moderna: Interfaz web profesional
+- Persistencia de datos: Historial no se pierde al reiniciar
+- Gestión eficiente: TTL y límites configurables
+- Control administrativo: Admin puede gestionar el chat
+- Mejor UX: Notificaciones claras y diseño pulido
+
+ARCHIVOS MODIFICADOS:
+- backend/api.py (MD5: verificar con calcular_md5.py)
+- core/auth.py (MD5: verificar con calcular_md5.py)
+- README.md (MD5: verificar con calcular_md5.py)
+
+ARCHIVOS NUEVOS:
+- frontend/ (directorio completo con Angular)
+  - src/app/components/ (Login, Chat, Files, Dashboard)
+  - src/app/services/ (Auth, Chat, File)
+  - src/app/guards/ (AuthGuard)
+  - src/app/interceptors/ (AuthInterceptor)
+  - src/app/components/chat/finalize-chat-dialog.component.ts
+- chat_history.json (generado automáticamente)
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ VERSIÓN 6.0 - Firma Digital y Documentación Ejecutiva                      │
@@ -258,20 +331,22 @@ LIMITACIONES IDENTIFICADAS:
 CONTROL DE INTEGRIDAD - MD5 DE ARCHIVOS
 ================================================================================
 
-ÚLTIMA ACTUALIZACIÓN: 2025-11-19
+ÚLTIMA ACTUALIZACIÓN: 2025-11-20
 
 ┌──────────────────────────────┬──────────────────────────────────┬──────────────┐
 │ Archivo                      │ MD5                              │ Fecha        │
 ├──────────────────────────────┼──────────────────────────────────┼──────────────┤
-│ server.py                    │ 348ebfd6dbfcf67f0deb930d6a3486ab │ 2025-11-19   │
-│ client.py                    │ b07f5e3d3ccda837997644139c45c44b │ 2025-11-19   │
-│ crypto_utils.py              │ 2fe800977b7e5b67185cf7a5c145f31c │ 2025-11-19   │
-│ digital_signature.py         │ 258fc85d3be210d0f324901e058b19e2 │ 2025-11-19   │
-│ file_server.py               │ 571bba308266bcb4a1e3bc0c2da34da7 │ 2025-11-19   │
-│ generate_ssl_cert.py         │ 6e5d4821aabccd97433a0011b412dbe1 │ 2025-11-19   │
-│ mostrar_cifrado.py           │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
-│ calcular_md5.py              │ 1832f95ca60a02101473cee1e5434ba9 │ 2025-11-19   │
-│ README.md                    │ (verificar con calcular_md5.py)  │ 2025-11-19   │
+│ core/server.py               │ 68546676c84817304a76eaf3040ffb22 │ 2025-11-19   │
+│ core/client.py               │ bc78e8e9341a4177815133b0d89e2924 │ 2025-11-19   │
+│ core/crypto_utils.py         │ 2fe800977b7e5b67185cf7a5c145f31c │ 2025-11-19   │
+│ core/digital_signature.py    │ c953bd6d2cb0660280eb55ce3aa93ca0 │ 2025-11-19   │
+│ core/file_server.py          │ bb49604167130accc8ee6f0bb6114140 │ 2025-11-19   │
+│ core/auth.py                 │ 468c0722cbd5c487e16680a94fdfa8d0 │ 2025-11-19   │
+│ backend/api.py               │ 5001e5cdfb8f827ea10ff48b63e37e18 │ 2025-11-20   │
+│ scripts/generate_ssl_cert.py │ 6e5d4821aabccd97433a0011b412dbe1 │ 2025-11-19   │
+│ scripts/mostrar_cifrado.py   │ c6ea27b39da48f363cfb2102994f33fd │ 2025-10-22   │
+│ scripts/calcular_md5.py      │ 31af28b959f500400752d1d618426e42 │ 2025-11-20   │
+│ README.md                    │ (verificar con calcular_md5.py)  │ 2025-11-20   │
 └──────────────────────────────┴──────────────────────────────────┴──────────────┘
 
 NOTA: Para verificar integridad de archivos, ejecutar:
@@ -379,7 +454,7 @@ Desarrollado por: [Nombre del equipo]
 Revisado por: [Nombre del revisor]
 Aprobado por: [Nombre del aprobador]
 
-Fecha de última revisión: 2025-11-19
+Fecha de última revisión: 2025-11-20
 
 ================================================================================
 

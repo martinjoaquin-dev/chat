@@ -1,0 +1,419 @@
+/* Estilos globales - Diseño minimalista y moderno */
+
+/* Asegurar que Material Icons se carguen correctamente */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  /* Colores principales - Paleta minimalista */
+  --primary-color: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  
+  --secondary-color: #10b981;
+  --secondary-dark: #059669;
+  
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --surface-elevated: #ffffff;
+  
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-disabled: #9ca3af;
+  
+  --border-color: #e5e7eb;
+  --border-radius: 12px;
+  --border-radius-sm: 8px;
+  
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Tipografía */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  
+  /* Transiciones */
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--background);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Utilidades */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.card {
+  background: var(--surface-elevated);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-md);
+  padding: var(--spacing-lg);
+  border: 1px solid var(--border-color);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--border-radius-sm);
+  font-weight: 500;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: none;
+  outline: none;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &.btn-primary {
+    background: var(--primary-color);
+    color: white;
+    
+    &:hover {
+      background: var(--primary-dark);
+    }
+  }
+  
+  &.btn-secondary {
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    
+    &:hover {
+      background: var(--surface-elevated);
+    }
+  }
+}
+
+.input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-sm);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  transition: all var(--transition-base);
+  background: var(--background);
+  color: var(--text-primary);
+  
+  &:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  
+  &::placeholder {
+    color: var(--text-disabled);
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+/* Scrollbar personalizado - Oculto en sidebar, visible en otras áreas */
+.sidenav,
+.sidenav * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE y Edge */
+  
+  &::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+}
+
+/* Scrollbar visible para otras áreas */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+  
+  &:hover {
+    background: var(--text-disabled);
+  }
+}
+
+/* Material Design Overrides */
+.mat-mdc-form-field {
+  width: 100%;
+
+  .mat-mdc-text-field-wrapper {
+    padding-bottom: 0;
+  }
+}
+
+.mat-mdc-button, .mat-mdc-raised-button {
+  border-radius: var(--border-radius-sm) !important;
+  font-weight: 500 !important;
+  text-transform: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--spacing-xs) !important;
+}
+
+.mat-mdc-chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: var(--spacing-xs) !important;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+.mat-mdc-list-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--spacing-md) !important;
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}
+
+/* Prevenir superposición de texto */
+* {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Asegurar que los iconos no se superpongan y se carguen correctamente */
+mat-icon {
+  font-family: 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1 !important;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0;
+  vertical-align: middle !important;
+}
+
+/* ============================================
+   SNACKBARS PERSONALIZADOS - Mensajes Modernos
+   ============================================ */
+
+/* Configuración global de posición para snackbars */
+.mat-mdc-snack-bar-container {
+  margin-top: 20px !important;
+  margin-right: 20px !important;
+  max-width: 450px !important;
+  min-width: 320px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Snackbar de Éxito (Verde) */
+.success-snackbar .mat-mdc-snack-bar-container {
+  background: #10b981 !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3), 0 2px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+.success-snackbar .mdc-snackbar__surface {
+  background: #10b981 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.success-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+  padding-right: 12px !important;
+}
+
+.success-snackbar .mat-mdc-snack-bar-action {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  margin-left: 8px !important;
+  background: transparent !important;
+}
+
+.success-snackbar .mat-mdc-snack-bar-action:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+/* Snackbar de Advertencia (Naranja) */
+.warning-snackbar .mat-mdc-snack-bar-container {
+  background: #f59e0b !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.3), 0 2px 8px rgba(245, 158, 11, 0.2) !important;
+}
+
+.warning-snackbar .mdc-snackbar__surface {
+  background: #f59e0b !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.warning-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+  padding-right: 12px !important;
+}
+
+.warning-snackbar .mat-mdc-snack-bar-action {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  margin-left: 8px !important;
+  background: transparent !important;
+}
+
+.warning-snackbar .mat-mdc-snack-bar-action:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+/* Snackbar de Error (Rojo) */
+.error-snackbar .mat-mdc-snack-bar-container {
+  background: #ef4444 !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.3), 0 2px 8px rgba(239, 68, 68, 0.2) !important;
+}
+
+.error-snackbar .mdc-snackbar__surface {
+  background: #ef4444 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-label {
+  color: white !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  font-weight: 500 !important;
+  padding-right: 12px !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-action {
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  text-transform: uppercase !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  margin-left: 8px !important;
+  background: transparent !important;
+}
+
+.error-snackbar .mat-mdc-snack-bar-action:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: white !important;
+}
+
+/* Fallback para iconos si no cargan */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Estilos para el diálogo de finalizar chat */
+.finalize-chat-dialog {
+  .mat-mdc-dialog-container {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  }
+}
+

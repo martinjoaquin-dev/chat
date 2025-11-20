@@ -1,0 +1,117 @@
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: var(--spacing-md);
+}
+
+.login-card {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 420px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+
+  .logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto var(--spacing-md);
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99, 102, 241, 0.1);
+    border-radius: 50%;
+  }
+
+  .title {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+  }
+
+  .subtitle {
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    font-weight: 400;
+  }
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  .full-width {
+    width: 100%;
+  }
+
+  .login-button {
+    width: 100%;
+    height: 48px;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    margin-top: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+
+    .spinner {
+      display: inline-block;
+    }
+  }
+}
+
+.test-credentials {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+
+  .test-label {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-sm);
+    text-align: center;
+  }
+
+  .credentials-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .cred-button {
+    width: 100%;
+    font-size: var(--font-size-xs);
+    text-transform: none;
+    color: var(--text-secondary);
+  }
+}
+
+::ng-deep {
+  .mat-mdc-form-field {
+    .mat-mdc-text-field-wrapper {
+      background-color: var(--surface);
+    }
+  }
+
+  .mat-mdc-raised-button:not(:disabled) {
+    background-color: var(--primary-color);
+    
+    &:hover {
+      background-color: var(--primary-dark);
+    }
+  }
+}
+

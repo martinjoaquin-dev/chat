@@ -1,0 +1,106 @@
+<div class="files-container">
+  <div class="files-header">
+    <h2>Gestión de Archivos y Firma Digital</h2>
+    <p class="subtitle">Sube, firma y verifica documentos de forma segura</p>
+  </div>
+
+  <div class="upload-section">
+    <mat-card class="upload-card">
+      <mat-card-header>
+        <mat-card-title>
+          <div class="card-title-content">
+            <mat-icon>cloud_upload</mat-icon>
+            <span>Subir Archivo</span>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="upload-area">
+          <input type="file" 
+                 #fileInput 
+                 (change)="onFileSelected($event)"
+                 accept=".txt,.pdf,.zip"
+                 style="display: none;">
+          <button mat-raised-button 
+                  color="primary" 
+                  (click)="fileInput.click()"
+                  [disabled]="uploading">
+            <mat-icon>attach_file</mat-icon>
+            Seleccionar Archivo
+          </button>
+          <p class="upload-hint">Formatos soportados: TXT, PDF, ZIP</p>
+        </div>
+        <div *ngIf="uploading" class="upload-progress">
+          <mat-progress-bar 
+            mode="determinate" 
+            [value]="uploadProgress">
+          </mat-progress-bar>
+          <p>{{ uploadProgress }}%</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="files-list-section">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          <div class="card-title-content">
+            <mat-icon>folder</mat-icon>
+            <span>Archivos Disponibles</span>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="loading" class="loading-state">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Cargando archivos...</p>
+        </div>
+
+        <div *ngIf="!loading && files.length === 0" class="empty-state">
+          <mat-icon>folder_open</mat-icon>
+          <p>No hay archivos disponibles</p>
+        </div>
+
+        <div *ngIf="!loading && files.length > 0" class="files-grid">
+          <mat-card *ngFor="let file of files" class="file-card">
+            <mat-card-header>
+              <mat-card-title>
+                <div class="file-title-content">
+                  <mat-icon>{{ getFileIcon(file.filename) }}</mat-icon>
+                  <span class="file-name">{{ file.filename }}</span>
+                </div>
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <div class="file-info">
+                <div class="info-item">
+                  <mat-icon>description</mat-icon>
+                  <span>{{ formatFileSize(file.size) }}</span>
+                </div>
+                <div class="info-item">
+                  <mat-icon>schedule</mat-icon>
+                  <span>{{ formatDate(file.uploaded_at) }}</span>
+                </div>
+                <div class="info-item">
+                  <mat-icon [class.verified]="file.signed">verified</mat-icon>
+                  <span>{{ file.signed ? 'Firmado' : 'Sin firmar' }}</span>
+                </div>
+              </div>
+            </mat-card-content>
+            <mat-card-actions>
+              <button mat-stroked-button 
+                      (click)="verifySignature(file)"
+                      [disabled]="!file.signed"
+                      class="verify-button">
+                <mat-icon>verified</mat-icon>
+                <span>Verificar Firma</span>
+              </button>
+            </mat-card-actions>
+          </mat-card>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+

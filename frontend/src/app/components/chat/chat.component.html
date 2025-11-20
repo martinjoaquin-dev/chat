@@ -1,0 +1,82 @@
+<div class="chat-container">
+  <div class="chat-header">
+    <div class="header-info">
+      <h2>Chat Seguro</h2>
+      <div class="status-indicator" *ngIf="status">
+        <span class="status-dot" [class.active]="status.running"></span>
+        <span class="status-text">
+          {{ status.running ? 'Conectado' : 'Desconectado' }} 
+          ({{ status.clients_connected }} clientes)
+        </span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <mat-chip-set>
+        <mat-chip>
+          <mat-icon>lock</mat-icon>
+          Cifrado Híbrido
+        </mat-chip>
+        <mat-chip>
+          <mat-icon>verified</mat-icon>
+          SHA256
+        </mat-chip>
+      </mat-chip-set>
+      <button *ngIf="isAdmin()" 
+              mat-stroked-button 
+              color="warn"
+              (click)="finalizeChat()"
+              class="finalize-button">
+        <mat-icon>delete_sweep</mat-icon>
+        Finalizar Chat
+      </button>
+    </div>
+  </div>
+
+  <div class="messages-container" #messagesContainer>
+    <div *ngIf="messages.length === 0" class="empty-state">
+      <mat-icon>chat_bubble_outline</mat-icon>
+      <p>No hay mensajes aún. ¡Comienza la conversación!</p>
+    </div>
+
+    <div *ngFor="let message of messages" 
+         class="message"
+         [class.own-message]="isOwnMessage(message)">
+      <div class="message-content">
+        <div class="message-header">
+          <span class="sender">{{ message.sender }}</span>
+          <span class="timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+        </div>
+        <div class="message-body">
+          {{ message.content }}
+        </div>
+        <div class="message-footer" *ngIf="message.encrypted">
+          <mat-icon>lock</mat-icon>
+          <span>Cifrado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chat-input-container">
+    <form [formGroup]="chatForm" (ngSubmit)="sendMessage()" class="chat-form">
+      <mat-form-field appearance="outline" class="message-input">
+        <textarea matInput 
+                  formControlName="message" 
+                  placeholder="Escribe un mensaje..."
+                  rows="1"
+                  (keydown)="onKeyPress($event)"
+                  [cdkTextareaAutosize]="true"
+                  cdkAutosizeMinRows="1"
+                  cdkAutosizeMaxRows="4"></textarea>
+      </mat-form-field>
+      <button mat-fab 
+              color="primary" 
+              type="submit"
+              [disabled]="loading || chatForm.invalid"
+              class="send-button">
+        <mat-icon>send</mat-icon>
+      </button>
+    </form>
+  </div>
+</div>
+

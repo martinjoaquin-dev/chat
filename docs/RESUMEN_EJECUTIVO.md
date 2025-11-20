@@ -45,8 +45,8 @@ Este proyecto implementa un sistema completo de comunicación segura y firma dig
 - ✅ Documentación técnica y ejecutiva
 
 ### No Incluido (Futuras Versiones)
-- ⏳ Interfaz gráfica de usuario (GUI)
 - ⏳ Autenticación de usuarios con base de datos
+- ⏳ Notificaciones push en tiempo real
 - ⏳ Integración completa con Google Drive API
 - ⏳ Sistema de notificaciones por correo
 - ⏳ VPN integrada (requiere configuración externa)

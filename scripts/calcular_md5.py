@@ -18,13 +18,24 @@ def calcular_md5(archivo):
         return f"ERROR: {e}"
 
 def obtener_md5_archivos():
-    """Obtiene MD5 de todos los archivos .py en el directorio actual."""
+    """Obtiene MD5 de todos los archivos .py en directorios relevantes."""
     archivos_py = []
-    for archivo in os.listdir('.'):
-        if archivo.endswith('.py') and os.path.isfile(archivo):
-            md5 = calcular_md5(archivo)
-            fecha = datetime.fromtimestamp(os.path.getmtime(archivo)).strftime('%Y-%m-%d')
-            archivos_py.append((archivo, md5, fecha))
+    
+    # Directorios a buscar
+    directorios = ['backend', 'core', 'scripts']
+    
+    # Buscar en directorios específicos
+    for directorio in directorios:
+        if os.path.exists(directorio):
+            for root, dirs, files in os.walk(directorio):
+                for archivo in files:
+                    if archivo.endswith('.py'):
+                        ruta_completa = os.path.join(root, archivo)
+                        # Obtener ruta relativa
+                        ruta_relativa = os.path.relpath(ruta_completa)
+                        md5 = calcular_md5(ruta_completa)
+                        fecha = datetime.fromtimestamp(os.path.getmtime(ruta_completa)).strftime('%Y-%m-%d')
+                        archivos_py.append((ruta_relativa, md5, fecha))
     
     return sorted(archivos_py)
 

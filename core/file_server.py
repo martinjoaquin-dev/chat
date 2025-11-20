@@ -203,13 +203,22 @@ async def list_files(request):
             file_path = os.path.join(UPLOAD_DIR, filename)
             if os.path.isfile(file_path):
                 stat = os.stat(file_path)
+                
+                # Verificar si existe firma para este archivo
+                signature_path = os.path.join(SIGNATURES_DIR, f"{Path(filename).stem}.sig.json")
+                has_signature = os.path.exists(signature_path)
+                
                 files.append({
                     'filename': filename,
                     'size': stat.st_size,
-                    'uploaded_at': datetime.fromtimestamp(stat.st_mtime).isoformat()
+                    'uploaded_at': datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                    'signed': has_signature
                 })
     
-    return web.json_response({'files': files})
+    return web.json_response({
+        'files': files,
+        'count': len(files)
+    })
 
 
 async def health_check(request):
