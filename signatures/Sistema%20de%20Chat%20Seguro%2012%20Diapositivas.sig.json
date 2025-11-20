@@ -1,0 +1,9 @@
+{
+  "file_path": "uploads\\Sistema%20de%20Chat%20Seguro%2012%20Diapositivas.pdf",
+  "signature": "13169cb40c5fe0c21df174d5631fa9df4d191b713dfa1a8e8bc1a88701c7bd0f766eea92e685ecdeb71e9e71922ce868570f619d634554f45ac0c45bafa7a13300bacbd2d66c183738a468ce09dd4c8ce86e2f9094ea7fabbc32a9b606d8ba99fc1201991900b0ecfceb2b34e42575b04b327028d52637f1a53f246f781c56871d808007d3e89eecd148febb8aacd0a5894ad925e7db94cf4a536110c9f62879d40cf6b883d76e2bfc85f6499d79dfb5667782e59f7be2c881ad717dc0cedcf5254db8cc838465430ec14a22c6760fce3244b8e7ca2e96b8af286959630b981943b67e3ea00b96dc3298c74ebc4a18c405b923afe85478c4b94f4edf13be6b15",
+  "hash": "99f5ec9e9e3f0fb377e24247806df31fec2be28393adb194c586623c8b089032",
+  "timestamp": "2025-11-20T03:28:43.024197",
+  "algorithm": "RSA-PSS-SHA256",
+  "signer_name": "bytearray(b'Mart\\xc3\\xadn Antonio Joaqu\\xc3\\xadn Landa')",
+  "signer_email": "bytearray(b'20233tn170@utez.edu.mx')"
+}

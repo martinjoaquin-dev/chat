@@ -7,6 +7,7 @@ Utiliza criptografía asimétrica para firmar y verificar archivos.
 import os
 import hashlib
 import zipfile
+import shutil
 from pathlib import Path
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -136,7 +137,7 @@ class DigitalSignature:
     
     def calculate_file_hash(self, file_path):
         """
-        Calcula el hash SHA256 de un archivo.
+        Calcula el hash SHA256 de un archivo de forma optimizada.
         
         Args:
             file_path: Ruta al archivo
@@ -145,18 +146,34 @@ class DigitalSignature:
             bytes: Hash SHA256 del archivo
         """
         sha256_hash = hashlib.sha256()
+        # Usar un buffer más grande para mejorar el rendimiento (64KB en lugar de 4KB)
+        buffer_size = 65536  # 64KB
+        
         with open(file_path, 'rb') as f:
-            for chunk in iter(lambda: f.read(4096), b''):
+            while True:
+                chunk = f.read(buffer_size)
+                if not chunk:
+                    break
+                # Asegurar que chunk sea bytes, no bytearray
+                if isinstance(chunk, bytearray):
+                    chunk = bytes(chunk)
                 sha256_hash.update(chunk)
-        return sha256_hash.digest()
+        
+        # Asegurar que el digest sea bytes, no bytearray
+        digest = sha256_hash.digest()
+        if isinstance(digest, bytearray):
+            return bytes(digest)
+        return digest
     
-    def sign_file(self, file_path, signature_path=None):
+    def sign_file(self, file_path, signature_path=None, signer_name=None, signer_email=None):
         """
         Firma un archivo digitalmente.
         
         Args:
             file_path: Ruta al archivo a firmar
             signature_path: Ruta donde guardar la firma (opcional)
+            signer_name: Nombre del firmante (opcional)
+            signer_email: Email del firmante (opcional)
         
         Returns:
             bytes: Firma digital del archivo
@@ -177,18 +194,70 @@ class DigitalSignature:
             hashes.SHA256()
         )
         
+        # Asegurar que signature sea bytes (no bytearray) antes de guardar
+        if isinstance(signature, bytearray):
+            signature = bytes(signature)
+        if not isinstance(signature, bytes):
+            signature = bytes(signature)
+        
+        # Asegurar que file_hash sea bytes (no bytearray)
+        if isinstance(file_hash, bytearray):
+            file_hash = bytes(file_hash)
+        if not isinstance(file_hash, bytes):
+            file_hash = bytes(file_hash)
+        
         # Guardar firma si se especifica ruta
         if signature_path:
-            signature_data = {
-                'file_path': file_path,
-                'signature': signature.hex(),
-                'hash': file_hash.hex(),
-                'timestamp': datetime.now().isoformat(),
-                'algorithm': 'RSA-PSS-SHA256'
-            }
+            try:
+                # Convertir signature y file_hash a bytes explícitamente
+                if isinstance(signature, bytearray):
+                    signature = bytes(signature)
+                elif not isinstance(signature, bytes):
+                    signature = bytes(signature)
+                
+                if isinstance(file_hash, bytearray):
+                    file_hash = bytes(file_hash)
+                elif not isinstance(file_hash, bytes):
+                    file_hash = bytes(file_hash)
+                
+                # Convertir a hex string (garantizado que es bytes ahora)
+                signature_hex = signature.hex()  # Esto siempre devuelve string
+                hash_hex = file_hash.hex()  # Esto siempre devuelve string
+                
+                # Crear diccionario con TODOS los valores como strings
+                signature_data = {
+                    'file_path': str(file_path),
+                    'signature': str(signature_hex),
+                    'hash': str(hash_hex),
+                    'timestamp': str(datetime.now().isoformat()),
+                    'algorithm': str('RSA-PSS-SHA256')
+                }
             
-            with open(signature_path, 'w') as f:
-                json.dump(signature_data, f, indent=2)
+                # Agregar información del firmante si está disponible
+                if signer_name:
+                    signature_data['signer_name'] = str(signer_name)
+                if signer_email:
+                    signature_data['signer_email'] = str(signer_email)
+                
+                # Serializar a JSON (todos los valores ya son strings)
+                with open(signature_path, 'w', encoding='utf-8') as f:
+                    json.dump(signature_data, f, indent=2, ensure_ascii=False)
+            except (TypeError, ValueError) as e:
+                # Error de serialización JSON
+                import traceback
+                error_tb = traceback.format_exc()
+                print(f"Error al guardar firma en {signature_path}: {e}")
+                print(f"Traceback: {error_tb}")
+                print(f"Signature type: {type(signature)}, value: {repr(signature)[:100]}")
+                print(f"File hash type: {type(file_hash)}, value: {repr(file_hash)[:100]}")
+                raise ValueError(f"Error al guardar firma (serialización JSON): {str(e)}") from e
+            except Exception as e:
+                # Otro tipo de error
+                import traceback
+                error_tb = traceback.format_exc()
+                print(f"Error inesperado al guardar firma: {e}")
+                print(f"Traceback: {error_tb}")
+                raise
         
         return signature
     
@@ -236,32 +305,42 @@ class DigitalSignature:
             print(f"Error en verificación: {e}")
             return False
     
-    def sign_txt_file(self, file_path, signature_path=None):
+    def sign_txt_file(self, file_path, signature_path=None, signer_name=None, signer_email=None):
         """
-        Firma un archivo de texto (.txt).
+        Firma un archivo de texto (.txt) y crea una versión firmada visible.
         
         Args:
             file_path: Ruta al archivo .txt
             signature_path: Ruta donde guardar la firma
+            signer_name: Nombre del firmante (opcional)
+            signer_email: Email del firmante (opcional)
         
         Returns:
-            bytes: Firma digital
+            str: Ruta al archivo firmado (si se creó)
         """
         if not file_path.endswith('.txt'):
             raise ValueError("El archivo debe ser .txt")
         
-        return self.sign_file(file_path, signature_path)
+        # Firmar archivo
+        signature = self.sign_file(file_path, signature_path, signer_name, signer_email)
+        
+        # Crear versión firmada visible
+        signed_file_path = self._create_signed_txt_file(file_path, signer_name, signer_email)
+        
+        return signed_file_path
     
-    def sign_pdf_file(self, file_path, signature_path=None):
+    def sign_pdf_file(self, file_path, signature_path=None, signer_name=None, signer_email=None):
         """
-        Firma un archivo PDF.
+        Firma un archivo PDF y crea una versión firmada visible (opcional para archivos grandes).
         
         Args:
             file_path: Ruta al archivo .pdf
             signature_path: Ruta donde guardar la firma
+            signer_name: Nombre del firmante (opcional)
+            signer_email: Email del firmante (opcional)
         
         Returns:
-            bytes: Firma digital
+            str: Ruta al archivo firmado (si se creó)
         """
         if not PDF_SUPPORT:
             raise ImportError("PyPDF2 no está instalado. Instala con: pip install PyPDF2")
@@ -269,23 +348,247 @@ class DigitalSignature:
         if not file_path.endswith('.pdf'):
             raise ValueError("El archivo debe ser .pdf")
         
-        return self.sign_file(file_path, signature_path)
+        # Firmar archivo (esto es lo más importante)
+        signature = self.sign_file(file_path, signature_path, signer_name, signer_email)
     
-    def sign_zip_file(self, file_path, signature_path=None):
+        # Crear versión firmada visible solo para archivos pequeños (optimización)
+        file_size = os.path.getsize(file_path)
+        if file_size > 10 * 1024 * 1024:  # Archivos > 10MB: omitir creación de versión visible
+            print(f"Archivo grande ({file_size / 1024 / 1024:.1f}MB): omitiendo versión visible para mejorar velocidad")
+            return None
+        
+        # Para archivos pequeños, crear versión firmada visible
+        signed_file_path = self._create_signed_pdf_file(file_path, signer_name, signer_email)
+        
+        return signed_file_path
+    
+    def sign_zip_file(self, file_path, signature_path=None, signer_name=None, signer_email=None):
         """
         Firma un archivo ZIP.
         
         Args:
             file_path: Ruta al archivo .zip
             signature_path: Ruta donde guardar la firma
+            signer_name: Nombre del firmante (opcional)
+            signer_email: Email del firmante (opcional)
         
         Returns:
-            bytes: Firma digital
+            str: Ruta al archivo firmado (si se creó)
         """
         if not file_path.endswith('.zip'):
             raise ValueError("El archivo debe ser .zip")
         
-        return self.sign_file(file_path, signature_path)
+        # Firmar archivo
+        signature = self.sign_file(file_path, signature_path, signer_name, signer_email)
+        
+        # Para ZIP, no creamos versión visible, pero podemos agregar metadata
+        return None
+    
+    def _create_signed_txt_file(self, file_path, signer_name=None, signer_email=None):
+        """Crea una versión del archivo TXT con la firma visible al final."""
+        signed_file_path = file_path.replace('.txt', '_signed.txt')
+        
+        # Leer archivo original
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Agregar información de firma al final
+        signature_text = '\n\n' + '='*50 + '\n'
+        signature_text += 'FIRMA DIGITAL\n'
+        signature_text += '='*50 + '\n'
+        if signer_name:
+            signature_text += f'Firmado por: {signer_name}\n'
+        if signer_email:
+            signature_text += f'Email: {signer_email}\n'
+        signature_text += f'Fecha: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n'
+        signature_text += '='*50
+        
+        # Escribir archivo firmado
+        with open(signed_file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+            f.write(signature_text)
+        
+        return signed_file_path
+    
+    def _create_signed_pdf_file(self, file_path, signer_name=None, signer_email=None):
+        """
+        Crea una versión del archivo PDF con metadata de firma (optimizado para velocidad).
+        Para archivos grandes, omite la copia completa y solo agrega metadata.
+        """
+        if not PDF_SUPPORT:
+            return None
+        
+        try:
+            signed_file_path = file_path.replace('.pdf', '_signed.pdf')
+            
+            # Optimización: Para archivos grandes, copiar directamente y solo agregar metadata
+            # Esto es mucho más rápido que copiar todas las páginas
+            import shutil
+            file_size = os.path.getsize(file_path)
+            
+            # OPTIMIZACIÓN CRÍTICA: Para archivos grandes (>3MB), solo copiar sin metadata
+            # La firma digital ya está guardada en .sig.json, esto es solo visual
+            if file_size > 3 * 1024 * 1024:  # Más de 3MB
+                # Para archivos grandes, simplemente copiar el archivo (MUY rápido)
+                # La firma digital ya está guardada en el archivo .sig.json
+                shutil.copy2(file_path, signed_file_path)
+                print(f"✓ Archivo grande ({file_size / 1024 / 1024:.1f}MB): versión visible creada rápidamente")
+                return signed_file_path
+            
+            # Para archivos pequeños, agregar metadata y página de firma visible
+            reader = PdfReader(file_path)
+            writer = PdfWriter()
+            
+            # Copiar todas las páginas del original
+            for page in reader.pages:
+                writer.add_page(page)
+            
+            # Intentar agregar una página visible con la firma usando reportlab
+            try:
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.pagesizes import letter, A4
+                from reportlab.lib.units import inch
+                from reportlab.lib.colors import HexColor
+                from io import BytesIO
+                
+                # Convertir signer_name y signer_email a strings si son bytearray
+                def ensure_string(value):
+                    """Convierte bytearray a string si es necesario."""
+                    if value is None:
+                        return None
+                    if isinstance(value, bytearray):
+                        return value.decode('utf-8')
+                    if isinstance(value, bytes):
+                        return value.decode('utf-8')
+                    return str(value)
+                
+                signer_name_str = ensure_string(signer_name) if signer_name else None
+                signer_email_str = ensure_string(signer_email) if signer_email else None
+                
+                # Crear una página nueva con la información de la firma
+                packet = BytesIO()
+                can = canvas.Canvas(packet, pagesize=letter)
+                width, height = letter
+                
+                # Fondo con color suave
+                can.setFillColor(HexColor('#F8F9FA'))
+                can.rect(0, 0, width, height, fill=1, stroke=0)
+                
+                # Título principal centrado
+                can.setFillColor(HexColor('#1A237E'))
+                can.setFont("Helvetica-Bold", 24)
+                title = "FIRMA DIGITAL"
+                title_width = can.stringWidth(title, "Helvetica-Bold", 24)
+                can.drawString((width - title_width) / 2, height - 100, title)
+                
+                # Línea decorativa
+                can.setStrokeColor(HexColor('#3F51B5'))
+                can.setLineWidth(2)
+                can.line(50, height - 130, width - 50, height - 130)
+                
+                # Información del firmante con mejor formato
+                y_position = height - 180
+                can.setFillColor(HexColor('#212121'))
+                can.setFont("Helvetica-Bold", 14)
+                
+                # Contenedor para la información
+                box_y = y_position - 150
+                can.setFillColor(HexColor('#FFFFFF'))
+                can.setStrokeColor(HexColor('#E0E0E0'))
+                can.setLineWidth(1)
+                can.roundRect(50, box_y, width - 100, 150, 5, fill=1, stroke=1)
+                
+                # Información dentro del contenedor
+                y_info = y_position - 20
+                can.setFillColor(HexColor('#424242'))
+                
+                if signer_name_str:
+                    can.setFont("Helvetica-Bold", 12)
+                    can.drawString(70, y_info, "Firmado por:")
+                    can.setFont("Helvetica", 12)
+                    can.drawString(180, y_info, signer_name_str)
+                    y_info -= 30
+                
+                if signer_email_str:
+                    can.setFont("Helvetica-Bold", 12)
+                    can.drawString(70, y_info, "Email:")
+                    can.setFont("Helvetica", 12)
+                    can.drawString(180, y_info, signer_email_str)
+                    y_info -= 30
+                
+                timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                can.setFont("Helvetica-Bold", 12)
+                can.drawString(70, y_info, "Fecha de firma:")
+                can.setFont("Helvetica", 12)
+                can.drawString(180, y_info, timestamp_str)
+                
+                # Línea separadora
+                y_info -= 25
+                can.setStrokeColor(HexColor('#E0E0E0'))
+                can.setLineWidth(1)
+                can.line(70, y_info, width - 70, y_info)
+                
+                # Texto informativo
+                y_info -= 40
+                can.setFillColor(HexColor('#757575'))
+                can.setFont("Helvetica", 10)
+                can.drawString(70, y_info, "Este documento ha sido firmado digitalmente.")
+                y_info -= 18
+                can.drawString(70, y_info, "La integridad del documento puede verificarse usando la firma digital.")
+                y_info -= 18
+                can.drawString(70, y_info, "Para verificar la firma, utilice la función de verificación del sistema.")
+                
+                # Firma al final
+                can.setFillColor(HexColor('#9E9E9E'))
+                can.setFont("Helvetica-Oblique", 9)
+                footer = "Sistema de Firma Digital"
+                footer_width = can.stringWidth(footer, "Helvetica-Oblique", 9)
+                can.drawString((width - footer_width) / 2, 50, footer)
+                
+                can.save()
+                
+                # Agregar la página al PDF
+                packet.seek(0)
+                signature_pdf = PdfReader(packet)
+                signature_page = signature_pdf.pages[0]
+                writer.add_page(signature_page)
+                
+                print(f"✓ Página de firma visible agregada al PDF")
+            except ImportError:
+                # Si reportlab no está instalado, solo agregar metadata mejorada
+                print("INFO: reportlab no instalado. Agregando solo metadata. Para firma visible, instala: pip install reportlab")
+            except Exception as e:
+                print(f"Advertencia: No se pudo crear página de firma visible: {e}")
+            
+            # Agregar metadata con información del firmante (siempre, incluso si hay página visible)
+            try:
+                signer_display = signer_name or signer_email or "Usuario"
+                signer_display = str(signer_display) if signer_display else "Usuario"
+                timestamp_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                
+                # Metadata mejorada para que sea más visible en propiedades del documento
+                metadata = {
+                    '/Title': 'Documento firmado digitalmente',
+                    '/Author': str(signer_name) if signer_name else 'Firmante',
+                    '/Subject': f'Firmado por {signer_display} el {timestamp_str}',
+                    '/Keywords': f'Firma digital, {signer_display}, {timestamp_str}',
+                }
+                
+                writer.add_metadata(metadata)
+            except Exception as meta_error:
+                # Si falla agregar metadata, continuar sin ella (no es crítico)
+                print(f"Advertencia: No se pudo agregar metadata al PDF: {meta_error}")
+            
+            # Guardar PDF firmado
+            with open(signed_file_path, 'wb') as output_file:
+                writer.write(output_file)
+            
+            return signed_file_path
+            
+        except Exception as e:
+            print(f"Error al crear PDF firmado visible: {e}")
+            # Si falla, al menos devolver None para que siga funcionando
+            return None
     
     def sign_multiple_files(self, file_paths, output_dir=None):
         """

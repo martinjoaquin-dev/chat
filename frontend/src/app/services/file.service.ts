@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpEvent } from '@angular/common/http';
+import { HttpClient, HttpEvent, HttpEventType } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export interface FileInfo {
@@ -34,9 +34,16 @@ export class FileService {
     return this.http.get<FileListResponse>(`${this.apiUrl}/files`);
   }
 
-  uploadFile(file: File): Observable<any> {
+  uploadFile(file: File, signerName?: string, signerEmail?: string): Observable<any> {
     const formData = new FormData();
     formData.append('file', file);
+    
+    if (signerName) {
+      formData.append('signer_name', signerName);
+    }
+    if (signerEmail) {
+      formData.append('signer_email', signerEmail);
+    }
     
     return this.http.post(`${this.apiUrl}/files/upload`, formData, {
       reportProgress: true,

@@ -85,13 +85,20 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
       if (!messageText.trim()) return;
 
       this.loading = true;
-      const username = this.authService.getUsername() || 'Usuario';
+      // Obtener nombre y email para consistencia
+      // Priorizar nombre sobre email para mejor experiencia
+      const username = this.authService.getUsername() || this.authService.getEmail() || 'Usuario';
+      const userEmail = this.authService.getEmail();
+      
+      // Usar nombre si está disponible, si no usar email
+      const senderName = username;
 
       // Agregar mensaje localmente inmediatamente
+      // El servidor determinará el sender final (puede incluir email para reconocimiento)
       const newMessage: Message = {
         id: Date.now().toString(),
         content: messageText,
-        sender: username,
+        sender: senderName, // El servidor puede modificarlo para incluir email
         timestamp: new Date().toISOString()
       };
       this.chatService.addMessage(newMessage);
@@ -138,7 +145,16 @@ export class ChatComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   isOwnMessage(message: Message): boolean {
-    return message.sender === this.authService.getUsername();
+    // Verificar si el mensaje es propio comparando solo por nombre
+    // El sender siempre será solo el nombre (sin email)
+    const currentUsername = this.authService.getUsername();
+    
+    if (!message.sender || !currentUsername) {
+      return false;
+    }
+    
+    // Comparar directamente el nombre del sender con el nombre actual
+    return message.sender === currentUsername;
   }
 
   isAdmin(): boolean {

@@ -1,0 +1,9 @@
+{
+  "file_path": "uploads\\Agregar%20algoritmo%20sha-256%20a%20intercambio%20de%20mensajes.pdf",
+  "signature": "2e5951862cbf29a04bd27dd37a0ee30d8d985d048966d51e5d3b85a1bb0a3a60181f60cdb8120f8e96b0a6fe76f7aa17d86bbc988546ea7a9a97bf5c571a5221b2359a5faecc52f251633ba680f5cae2bd050c12d914b0005f60e1d9e4732bdc4e30412a80029209c9feafddb52da6f822c0d4d1636e1893d6fdd64608f0eb9d1f9e8bf1e7a186867a7a322936d8b8cae06c0fb6920113567fce03ce2dc193cf84c9eacd943c6f9e747b359c2fd77011a1d0cc90ef885f8947925b7b4d330fc7a28edb796b677606b766c2dd93f38c4a02eaa55621450a7253fb65733237c3a5645213ff53e6494056326afa2e955d7f8aabcc93188cb3cb80c5818342205288",
+  "hash": "392f845691e9ef118bfe0269e8e5fcbad5900da178317fd7f34b7e7a76c9c73f",
+  "timestamp": "2025-11-20T03:25:28.828043",
+  "algorithm": "RSA-PSS-SHA256",
+  "signer_name": "bytearray(b'Mart\\xc3\\xadn Antonio Joaqu\\xc3\\xadn Landa')",
+  "signer_email": "bytearray(b'20233tn170@utez.edu.mx')"
+}

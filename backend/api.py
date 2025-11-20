@@ -14,6 +14,10 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 # Agregar el directorio raíz al path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,6 +25,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.auth import authenticate, get_user_list, is_admin
 from core.file_server import SERVER_HOST as FILE_SERVER_HOST, SERVER_PORT as FILE_SERVER_PORT
 import aiohttp
+
+# Importar OAuth routes
+# Como estamos en backend/api.py, podemos importar directamente
+import sys
+import os
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+from oauth_routes import oauth_router
+
+from core.oauth import get_current_user as get_oauth_user, require_role
 
 # Si FILE_SERVER_HOST es 0.0.0.0, usar localhost para conexiones
 FILE_SERVER_CONNECT_HOST = "localhost" if FILE_SERVER_HOST == "0.0.0.0" else FILE_SERVER_HOST
@@ -41,6 +56,9 @@ app = FastAPI(
     description="API REST para el sistema de chat seguro con cifrado híbrido",
     version="7.0.0"
 )
+
+# Incluir router OAuth
+app.include_router(oauth_router)
 
 # CORS para permitir conexiones desde Angular
 app.add_middleware(
@@ -218,15 +236,39 @@ async def get_chat_status():
 async def send_message(message: MessageRequest, credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Envía un mensaje a través del servidor de chat."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
-        raise HTTPException(status_code=401, detail="No autenticado")
     
-    username = active_sessions[token_value]["username"]
+    # Intentar autenticación tradicional primero
+    username = None
+    user_email = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            # Si hay nombre, usarlo; si no, usar email como fallback
+            user_name = oauth_user.get("name")
+            user_email = oauth_user.get("email")
+            
+            # Usar nombre si está disponible, si no usar email
+            if user_name:
+                username = user_name
+            elif user_email:
+                username = user_email
+            else:
+                username = oauth_user.get("sub", "Usuario")
+        except:
+            pass
+    
+    if not username:
+        raise HTTPException(status_code=401, detail="No autenticado")
     
     # Limpiar mensajes antiguos antes de agregar nuevo
     clean_old_messages()
     
     # Agregar mensaje al historial
+    # Usar SOLO el nombre como sender (sin email)
     add_message_to_history(
         content=message.message,
         sender=username,
@@ -245,7 +287,21 @@ async def send_message(message: MessageRequest, credentials: HTTPAuthorizationCr
 async def get_messages(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Obtiene los mensajes del chat."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
+    
+    # Intentar autenticación tradicional primero
+    username = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            username = oauth_user.get("name") or oauth_user.get("email") or oauth_user.get("sub")
+        except:
+            pass
+    
+    if not username:
         raise HTTPException(status_code=401, detail="No autenticado")
     
     # Limpiar mensajes antiguos antes de devolver
@@ -261,10 +317,22 @@ async def get_messages(credentials: HTTPAuthorizationCredentials = Depends(secur
 async def clear_chat_history(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Finaliza/reinicia el chat eliminando todo el historial. Solo disponible para admin."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
-        raise HTTPException(status_code=401, detail="No autenticado")
     
-    username = active_sessions[token_value]["username"]
+    # Intentar autenticación tradicional primero
+    username = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            username = oauth_user.get("name") or oauth_user.get("email") or oauth_user.get("sub")
+        except:
+            pass
+    
+    if not username:
+        raise HTTPException(status_code=401, detail="No autenticado")
     
     # Verificar que el usuario sea admin
     if not is_admin(username):
@@ -296,7 +364,21 @@ async def clear_chat_history(credentials: HTTPAuthorizationCredentials = Depends
 async def list_files(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Lista los archivos disponibles."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
+    
+    # Intentar autenticación tradicional primero
+    username = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            username = oauth_user.get("name") or oauth_user.get("email") or oauth_user.get("sub")
+        except:
+            pass
+    
+    if not username:
         raise HTTPException(status_code=401, detail="No autenticado")
     
     # Conectar con el servidor de archivos
@@ -320,12 +402,39 @@ async def list_files(credentials: HTTPAuthorizationCredentials = Depends(securit
 @app.post("/api/files/upload")
 async def upload_file(
     file: UploadFile = File(...),
+    signer_name: Optional[str] = None,
+    signer_email: Optional[str] = None,
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """Sube un archivo al servidor."""
+    """Sube un archivo al servidor y lo firma digitalmente."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
+    
+    # Intentar autenticación tradicional primero
+    username = None
+    user_email = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            username = oauth_user.get("name") or oauth_user.get("email") or oauth_user.get("sub")
+            user_email = oauth_user.get("email")
+            # Si no se proporcionó signer_name, usar el nombre OAuth o email
+            if not signer_name:
+                signer_name = oauth_user.get("name") or username
+            if not signer_email:
+                signer_email = user_email
+        except:
+            pass
+    
+    if not username:
         raise HTTPException(status_code=401, detail="No autenticado")
+    
+    # Usar signer_name si se proporcionó, si no usar username
+    final_signer_name = signer_name or username
+    final_signer_email = signer_email or (user_email if user_email else None)
     
     # Leer el archivo
     try:
@@ -339,6 +448,12 @@ async def upload_file(
             data = aiohttp.FormData()
             data.add_field('file', contents, filename=file.filename, content_type=file.content_type or 'application/octet-stream')
             
+            # Agregar información del firmante
+            if final_signer_name:
+                data.add_field('signer_name', final_signer_name)
+            if final_signer_email:
+                data.add_field('signer_email', final_signer_email)
+            
             file_server_url = f"http://{FILE_SERVER_CONNECT_HOST}:{FILE_SERVER_PORT}/upload"
             
             try:
@@ -350,6 +465,13 @@ async def upload_file(
                     if response.status == 200:
                         try:
                             result = await response.json()
+                            # Convertir URL del servidor de archivos a URL del backend para descarga
+                            if result.get('signed_file_url'):
+                                # Extraer el nombre del archivo firmado
+                                signed_filename = result.get('signed_filename')
+                                if signed_filename:
+                                    # La descarga se hará a través del backend que redirige al file_server
+                                    result['signed_file_url'] = f"http://localhost:{FILE_SERVER_PORT}/download/{signed_filename}"
                             return result
                         except:
                             return {"success": True, "message": "Archivo subido exitosamente"}
@@ -382,7 +504,21 @@ async def verify_signature(
 ):
     """Verifica la firma digital de un archivo."""
     token_value = credentials.credentials
-    if token_value not in active_sessions:
+    
+    # Intentar autenticación tradicional primero
+    username = None
+    if token_value in active_sessions:
+        username = active_sessions[token_value]["username"]
+    else:
+        # Intentar autenticación OAuth
+        try:
+            oauth_user = await get_oauth_user(credentials)
+            # PRIORIZAR nombre sobre email para consistencia
+            username = oauth_user.get("name") or oauth_user.get("email") or oauth_user.get("sub")
+        except:
+            pass
+    
+    if not username:
         raise HTTPException(status_code=401, detail="No autenticado")
     
     filename = request.filename

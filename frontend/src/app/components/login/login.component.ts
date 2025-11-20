@@ -83,5 +83,18 @@ export class LoginComponent implements OnInit {
   fillCredentials(username: string, password: string): void {
     this.loginForm.patchValue({ username, password });
   }
+
+  loginWithGoogle(): void {
+    this.loading = true;
+    this.authService.loginWithGoogle().subscribe({
+      next: () => {
+        // La redirección se maneja automáticamente en el servicio
+      },
+      error: (error) => {
+        this.showError('Error al iniciar sesión con Google. Por favor, intenta nuevamente.');
+        this.loading = false;
+      }
+    });
+  }
 }
 

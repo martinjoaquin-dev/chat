@@ -20,6 +20,7 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatBadgeModule } from '@angular/material/badge';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { TextFieldModule } from '@angular/cdk/text-field';
 
 // Componentes
@@ -29,6 +30,8 @@ import { ChatComponent } from './components/chat/chat.component';
 import { FilesComponent } from './components/files/files.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { FinalizeChatDialogComponent } from './components/chat/finalize-chat-dialog.component';
+import { AuthCallbackComponent } from './components/auth-callback/auth-callback.component';
+import { SignDialogComponent } from './components/files/sign-dialog.component';
 
 // Servicios
 import { AuthService } from './services/auth.service';
@@ -39,6 +42,7 @@ import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
   { path: 'login', component: LoginComponent },
+  { path: 'auth-callback', component: AuthCallbackComponent },
   { 
     path: '', 
     component: DashboardComponent,
@@ -59,7 +63,9 @@ const routes: Routes = [
     ChatComponent,
     FilesComponent,
     DashboardComponent,
-    FinalizeChatDialogComponent
+    FinalizeChatDialogComponent,
+    AuthCallbackComponent,
+    SignDialogComponent
   ],
   imports: [
     BrowserModule,
@@ -83,6 +89,7 @@ const routes: Routes = [
     MatDialogModule,
     MatChipsModule,
     MatBadgeModule,
+    MatCheckboxModule,
     TextFieldModule
   ],
   providers: [

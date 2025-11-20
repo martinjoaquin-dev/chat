@@ -31,11 +31,21 @@
           <p class="upload-hint">Formatos soportados: TXT, PDF, ZIP</p>
         </div>
         <div *ngIf="uploading" class="upload-progress">
+          <div class="progress-info">
+            <mat-spinner diameter="30" *ngIf="uploadProgress < 100"></mat-spinner>
+            <mat-icon *ngIf="uploadProgress === 100" class="check-icon">check_circle</mat-icon>
+            <span class="progress-text">
+              <span *ngIf="uploadProgress < 75">Subiendo archivo...</span>
+              <span *ngIf="uploadProgress >= 75 && uploadProgress < 100">Firmando documento digitalmente...</span>
+              <span *ngIf="uploadProgress === 100">✓ Completado</span>
+              <strong style="margin-left: 8px;">{{ uploadProgress }}%</strong>
+            </span>
+          </div>
           <mat-progress-bar 
             mode="determinate" 
-            [value]="uploadProgress">
+            [value]="uploadProgress"
+            color="primary">
           </mat-progress-bar>
-          <p>{{ uploadProgress }}%</p>
         </div>
       </mat-card-content>
     </mat-card>

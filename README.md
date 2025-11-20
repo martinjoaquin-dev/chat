@@ -148,6 +148,7 @@ chat/
 - ✅ Angular Material para componentes UI
 - ✅ Responsive design
 - ✅ Buenas prácticas UX/UI (Nielsen's 12 Heuristics)
+- ✅ **Autenticación OAuth 2.0 con Google (Authorization Code + PKCE)**
 - ✅ Autenticación integrada con roles (admin/usuario)
 - ✅ Chat en tiempo real con historial persistente
 - ✅ Gestión de archivos con firma digital
@@ -156,6 +157,9 @@ chat/
 - ✅ Funcionalidad de administración (finalizar chat)
 
 ### Backend Python
+- ✅ **OAuth 2.0 con Google usando Authlib**
+- ✅ **Verificación de tokens con JWKS (JSON Web Key Set)**
+- ✅ **Flujo Authorization Code con PKCE**
 - ✅ Cifrado híbrido (RSA + AES)
 - ✅ Validación SHA256 obligatoria
 - ✅ SSL/TLS para transporte seguro
@@ -166,6 +170,7 @@ chat/
 - ✅ TTL (Time To Live) configurable para mensajes
 - ✅ Límite de mensajes configurable
 - ✅ Endpoints de administración (solo admin)
+- ✅ Endpoints OAuth (/auth/google/login, /auth/google/callback, /auth/refresh)
 
 ---
 
@@ -222,7 +227,88 @@ SIGNATURES_DIR=signatures
 MESSAGE_HISTORY_FILE=chat_history.json  # Archivo donde se guarda el historial
 MESSAGE_TTL_HOURS=24                   # Horas antes de eliminar mensajes (0 = sin límite)
 MESSAGE_MAX_COUNT=1000                  # Máximo de mensajes a mantener
+
+# OAuth 2.0 con Google (Requerido para autenticación OAuth)
+GOOGLE_CLIENT_ID=tu_google_client_id_aqui
+GOOGLE_CLIENT_SECRET=tu_google_client_secret_aqui
+GOOGLE_REDIRECT_URI=http://localhost:4200/auth-callback
+GOOGLE_SCOPES="openid email profile"
+GOOGLE_DISCOVERY=https://accounts.google.com/.well-known/openid-configuration
 ```
+
+### 🔐 Configuración OAuth 2.0 con Google
+
+El proyecto incluye integración completa con OAuth 2.0 usando Google como proveedor de identidad. Para configurar OAuth:
+
+#### 1. Crear un Proyecto en Google Cloud Console
+
+1. Ve a [Google Cloud Console](https://console.cloud.google.com/)
+2. Crea un nuevo proyecto o selecciona uno existente
+3. Habilita la **Google+ API** o **Google Identity Platform**
+
+#### 2. Configurar OAuth 2.0 Credentials
+
+1. Ve a **APIs & Services** > **Credentials**
+2. Haz clic en **Create Credentials** > **OAuth 2.0 Client ID**
+3. Si es la primera vez, configura la **OAuth consent screen**:
+   - Selecciona **External** (para desarrollo) o **Internal** (para G Suite)
+   - Completa la información requerida (nombre de la app, email de soporte, etc.)
+   - En **Scopes**, añade `openid`, `email`, `profile`
+   - Añade test users si es necesario (para modo de prueba)
+
+4. Crea el **OAuth 2.0 Client ID**:
+   - **Application type**: Web application
+   - **Name**: Chat Seguro (o el nombre que prefieras)
+   - **Authorized JavaScript origins**:
+     - `http://localhost:4200`
+     - `http://localhost:8000` (para desarrollo)
+   - **Authorized redirect URIs**:
+     - `http://localhost:4200/auth-callback`
+     - `http://localhost:8000/api/auth/google/callback` (para el backend)
+
+5. Copia el **Client ID** y **Client Secret** generados
+
+#### 3. Configurar Variables de Entorno
+
+Edita tu archivo `.env` y añade:
+
+```env
+GOOGLE_CLIENT_ID=tu_client_id_aqui.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=tu_client_secret_aqui
+GOOGLE_REDIRECT_URI=http://localhost:4200/auth-callback
+GOOGLE_SCOPES="openid email profile"
+GOOGLE_DISCOVERY=https://accounts.google.com/.well-known/openid-configuration
+```
+
+**📚 ¿Necesitas ayuda con la configuración?** 
+- ⚡ **¿Tienes prisa?** → [Resumen Rápido OAuth](docs/RESUMEN_RAPIDO_OAUTH.md) (3 pasos esenciales)
+- 📖 **¿Quieres detalles?** → [Guía Completa de Configuración OAuth](docs/CONFIGURACION_OAUTH.md) (paso a paso con ejemplos)
+- 🔍 **¿No encuentras OAuth Consent Screen?** → [Solución: No encuentro OAuth](docs/SOLUCION_NO_ENCUENTRO_OAUTH.md) (métodos alternativos)
+
+**⚠️ NOTA**: Para OAuth básico (email + perfil), **NO necesitas habilitar APIs adicionales** en Google Cloud Console. Puedes saltar directamente a configurar el OAuth Consent Screen.
+
+#### 4. Características de OAuth 2.0 Implementadas
+
+- ✅ **Authorization Code Flow con PKCE**: Flujo seguro con Proof Key for Code Exchange
+- ✅ **Verificación de Tokens con JWKS**: Verificación automática de id_token usando JSON Web Key Set
+- ✅ **Refresh Token**: Renovación automática de access_token cuando expira
+- ✅ **Discovery Document**: Conexión automática al discovery document de Google
+- ✅ **Compatibilidad Dual**: Funciona junto con autenticación tradicional (username/password)
+
+#### 5. Endpoints OAuth Disponibles
+
+- `GET /api/auth/google/login`: Inicia el flujo OAuth y devuelve la URL de autorización
+- `GET /api/auth/google/callback`: Callback que recibe el código de autorización de Google
+- `POST /api/auth/refresh`: Refresca un access_token usando un refresh_token
+- `GET /api/auth/oauth/me`: Obtiene información del usuario autenticado con OAuth
+
+#### 6. Uso en el Frontend
+
+El frontend Angular incluye:
+- Botón "Iniciar sesión con Google" en la pantalla de login
+- Componente `AuthCallbackComponent` que maneja la redirección de Google
+- Interceptor HTTP que añade automáticamente el token Bearer a las peticiones
+- Guard que protege rutas y verifica autenticación (tradicional u OAuth)
 
 ---
 
@@ -337,12 +423,15 @@ Ver la tabla completa en `docs/CONTROL_CAMBIOS.txt`.
 ### Frontend
 - Angular 17
 - Angular Material
+- angular-oauth2-oidc (OAuth 2.0 / OpenID Connect)
 - TypeScript
 - SCSS
 
 ### Backend
 - Python 3.7+
 - FastAPI (API REST)
+- Authlib (OAuth 2.0 / OpenID Connect)
+- PyJWT (Verificación de tokens JWT)
 - asyncio (Servidor TCP)
 - aiohttp (Servidor de archivos)
 - cryptography (Cifrado)
