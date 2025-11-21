@@ -1,9 +1,0 @@
-{
-  "file_path": "uploads\\Mart%C3%ADn%20Antonio%20Joaqu%C3%ADn%20Landa.pdf",
-  "signature": "6895b477f554a23576205d22b9ebb5a7186e0308eafddd3d1fc2215b091a0b014073d34b7b3b62503636bb1a7b2d50039decaecc0d8a96e7933c137a58fd2f458b6acbbbc07f607d4c878c0b2a1c61a1fadf8fd6df814aad8801fce87e539a59e76c505b2eeaf4b1277ae06186a7f0cc901d738c84deef0b61f77fb63e69a8c6d113cac69ad825a975e2def2a45ebf63b6b0d004ea14e54e7531d513f7731422a380a97615650a02ddb1fa3e74178e2c31581eacad35874e9453bcfbf9c81c999de16edbc38202518f135cff945599c3854e2448e3d70c468f82d9ae7f54392022869b0d2ec14ef1d56be3f30666c0979f3e58f68eae5244da94cb3e244b24e0",
-  "hash": "d01959b75788e4a10a9dd7eb32ba80a712bc08a660f87f873ffa05375cbb77dc",
-  "timestamp": "2025-11-20T02:55:29.711467",
-  "algorithm": "RSA-PSS-SHA256",
-  "signer_name": "bytearray(b'Mart\\xc3\\xadn Antonio Joaqu\\xc3\\xadn Landa')",
-  "signer_email": "bytearray(b'20233tn170@utez.edu.mx')"
-}

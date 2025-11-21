@@ -59,18 +59,6 @@
       </svg>
       Iniciar sesión con Google
     </button>
-
-    <div class="test-credentials">
-      <p class="test-label">Credenciales de prueba:</p>
-      <div class="credentials-list">
-        <button mat-stroked-button 
-                *ngFor="let cred of testCredentials" 
-                (click)="fillCredentials(cred.username, cred.password)"
-                class="cred-button">
-          {{ cred.username }} / {{ cred.password }}
-        </button>
-      </div>
-    </div>
   </div>
 </div>
 

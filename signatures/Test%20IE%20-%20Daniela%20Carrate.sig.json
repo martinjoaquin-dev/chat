@@ -1,9 +1,0 @@
-{
-  "file_path": "uploads\\Test%20IE%20-%20Daniela%20Carrate.pdf",
-  "signature": "622b03ae612f00acd2347665f77de501e4f51c098d4fcfe234d2692ca471f04500dccaa68ecf8f1eceda2871797f308c514e895503dba1284f8705565fc3901dc465b19f26cb8a3c611c5bbb84e2f5fe8cc2571c7d05eea4970affb335cd95daf17e96c4b13954a17ba1fc0ec87b39baaae2e91e6295a391d206da93f5e1190de39f1a06ac5f82c9d910735ffff4eaaf0e6900dd1d5a84f2da8543e591e99637799fccde4d7a4fb4e48d648024f3a6b1285eb4bb5af69b767c42ab7294fbcb35972207e8221204e89e662f2510eb8f477284f0ef4f36e55086cf03c952784f505f70ebaa446e414ab66f9218b8f7797b5939df6ff3cb9f7a7042e3d37abe6c65",
-  "hash": "17fc8c3611f7be76acc1a193422b8194cf038832ba6da80abe7487e687af0648",
-  "timestamp": "2025-11-20T03:22:49.147418",
-  "algorithm": "RSA-PSS-SHA256",
-  "signer_name": "bytearray(b'Mart\\xc3\\xadn Antonio Joaqu\\xc3\\xadn Landa')",
-  "signer_email": "bytearray(b'20233tn170@utez.edu.mx')"
-}

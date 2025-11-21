@@ -14,14 +14,6 @@ export class LoginComponent implements OnInit {
   loading = false;
   hidePassword = true;
 
-  // Credenciales de prueba para mostrar
-  testCredentials = [
-    { username: 'admin', password: 'admin123' },
-    { username: 'usuario1', password: 'password1' },
-    { username: 'test', password: 'test123' },
-    { username: 'demo', password: 'demo123' }
-  ];
-
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -78,10 +70,6 @@ export class LoginComponent implements OnInit {
       verticalPosition: 'top',
       horizontalPosition: 'end'
     });
-  }
-
-  fillCredentials(username: string, password: string): void {
-    this.loginForm.patchValue({ username, password });
   }
 
   loginWithGoogle(): void {

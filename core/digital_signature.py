@@ -232,7 +232,7 @@ class DigitalSignature:
                     'timestamp': str(datetime.now().isoformat()),
                     'algorithm': str('RSA-PSS-SHA256')
                 }
-            
+                
                 # Agregar información del firmante si está disponible
                 if signer_name:
                     signature_data['signer_name'] = str(signer_name)

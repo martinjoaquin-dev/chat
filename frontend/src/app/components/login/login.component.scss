@@ -73,36 +73,10 @@
   }
 }
 
-.test-credentials {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-color);
-
-  .test-label {
-    font-size: var(--font-size-xs);
-    color: var(--text-secondary);
-    margin-bottom: var(--spacing-sm);
-    text-align: center;
-  }
-
-  .credentials-list {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .cred-button {
-    width: 100%;
-    font-size: var(--font-size-xs);
-    text-transform: none;
-    color: var(--text-secondary);
-  }
-}
-
 .divider {
   display: flex;
   align-items: center;
-  text-align: center;
+    text-align: center;
   margin: var(--spacing-lg) 0;
 
   &::before,

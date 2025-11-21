@@ -1,9 +1,0 @@
-{
-  "file_path": "uploads\\PMBOK%20-%20Gesti%C3%B3n%20de%20Proyectos.pdf",
-  "signature": "4f899a95a36b0b5281f8c5b5658d289e3da434578d42d9e327e8583db2481ab00891b5283f596507b2f20c46d756fc8080332f719e684cb4c2a185aa17453f4ed5e81e1c1b8c918d4aa70bccaace840e46f458f0e765b8e59fb9527fcd9496a58079475d7e2667976ba04bb84d5e3752b05912f3653f5838ada1bf5f2e9c94fbd8eef549944693afb0ebedeabaacc08ac25c3b54edca37fca2e23c167fb2d2597f04050be85a5c1b379d76f2867052e3fb7dda1aa2068df8246869e716b72564e232c40135811ef7aae5fe7a63b31e6bd9ff8d76d4f88968fbbfcc38a168b5b28df8852a3121310d1c02c059b550ab8e4d717fad8bee1ff9ab8280c8f6f7e47a",
-  "hash": "5a00970c38fa2c6176ed2151b3c67e56d64e730cd4efd8ddaaa219bc8a3dc78b",
-  "timestamp": "2025-11-20T02:51:04.970748",
-  "algorithm": "RSA-PSS-SHA256",
-  "signer_name": "bytearray(b'Mart\\xc3\\xadn Antonio Joaqu\\xc3\\xadn Landa')",
-  "signer_email": "bytearray(b'20233tn170@utez.edu.mx')"
-}

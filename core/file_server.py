@@ -93,7 +93,7 @@ async def upload_file(request):
                     chunk = await field.read_chunk()
                     if not chunk:
                         break
-                        
+                    
                     size += len(chunk)
                     if size > MAX_FILE_SIZE:
                         return web.json_response(
